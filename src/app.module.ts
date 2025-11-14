@@ -1,6 +1,4 @@
 import { MiddlewareConsumer, Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { getDatabaseConfig } from './config/database.config';
@@ -14,6 +12,9 @@ import { LoggingInterceptor } from './common/logging.interceptor';
 import { OrganizationMiddleware } from './common/organization.middleware';
 import { AuthModule } from './modules/auth/auth.module';
 import { CoreModule } from './modules/core/core.module';
+import { Organization } from './modules/core/infra/entities/organization.entity';
+import { Product } from './modules/core/infra/entities/product.entity';
+import { UserEntity } from './modules/core/infra/entities/user.entity';
 
 @Module({
     imports: [
@@ -24,7 +25,10 @@ import { CoreModule } from './modules/core/core.module';
         TypeOrmModule.forRootAsync({
             imports: [ConfigModule],
             inject: [ConfigService],
-            useFactory: getDatabaseConfig,
+            useFactory: (configService: ConfigService) => ({
+                ...getDatabaseConfig(configService),
+                entities: [Organization, Product, UserEntity],
+            }),
         }),
         BullModule.forRootAsync({
           imports: [ConfigModule],
@@ -35,9 +39,8 @@ import { CoreModule } from './modules/core/core.module';
         AuthModule,
         CoreModule,
     ],
-    controllers: [AppController],
+    controllers: [],
     providers: [
-        AppService,
         {
             provide: APP_GUARD,
             useClass: JwtAuthGuard,
