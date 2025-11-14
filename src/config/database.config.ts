@@ -2,13 +2,13 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as path from 'path';
 
-export const getBaseDatabaseConfig = (configService: ConfigService) => ({
+export const getBaseDatabaseConfig = () => ({
   type: 'postgres' as const,
-  host: configService.get('DB_HOST', 'localhost'),
-  port: configService.get('DB_PORT', 5432),
-  username: configService.get('DB_USERNAME', 'marketplace_user'),
-  password: configService.get('DB_PASSWORD', 'secure_password'),
-  database: configService.get('DB_NAME', 'marketplace_db'),
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || '5432'),
+  username: process.env.DB_USERNAME || 'marketplace_user',
+  password: process.env.DB_PASSWORD || 'secure_password',
+  database: process.env.DB_NAME || 'marketplace_db',
   synchronize: false,
   migrationsTableName: 'typeorm_migrations',
 });
@@ -17,7 +17,7 @@ export const getDatabaseConfig = (
   configService: ConfigService,
 ): TypeOrmModuleOptions => {
   const isProduction = configService.get('NODE_ENV') === 'production';
-  const baseConfig = getBaseDatabaseConfig(configService);
+  const baseConfig = getBaseDatabaseConfig();
 
   return {
     ...baseConfig,
