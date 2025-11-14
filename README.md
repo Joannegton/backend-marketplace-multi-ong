@@ -1,98 +1,95 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Guia de Inicialização - Backend Marketplace Multi-ONG
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Este documento descreve como iniciar o projeto backend com Docker.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Pré-Requisitos
 
-## Description
+Você deve ter instalado:
+- **Docker** e **Docker Compose** (versão 1.29+)
+- Um terminal/PowerShell aberto na pasta raiz do projeto
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Passos para Iniciar
 
-## Project setup
+### 1. Clonar o Repositório (se necessário)
 
 ```bash
-$ npm install
+git clone <repositorio-url>
+cd backend-marketplace-multi-ong
 ```
 
-## Compile and run the project
+### 2. Criar o Arquivo `.env`
+
+O projeto vem com um arquivo `.env.example` como referência. Você precisa criar o `.env`:
+
+**Opção A: Copiar manualmente**
+```bash
+cp .env.example .env
+```
+
+**Opção B: Usar PowerShell (Windows)**
+```powershell
+Copy-Item .env.example .env
+```
+
+**Opção C: O Docker cria automaticamente**
+Se você não criar, o Docker copiará `.env.example` para `.env` automaticamente na primeira execução.
+
+**Conteúdo esperado do `.env`:**
+```
+DB_HOST=db
+DB_PORT=5432
+DB_USERNAME=marketplace_user
+DB_PASSWORD=secure_password
+DB_NAME=marketplace_db
+JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
+JWT_EXPIRES_IN=7d
+REDIS_HOST=redis
+REDIS_PORT=6379
+FRONTEND_URL=http://localhost:3001
+PORT=3000
+NODE_ENV=production ou development 
+```
+
+### 3. Iniciar os Containers
+
+Execute o comando abaixo na pasta raiz do projeto:
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+docker-compose up -d
 ```
 
-## Run tests
+### 4. Aguardar a Inicialização
+
+Os containers podem levar **30-60 segundos** para estar prontos na primeira execução. Use:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+docker-compose logs -f app
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+**Sinais de sucesso:**
+```
+[OK] Database is ready!
+[OK] Running migrations...
+[OK] Starting application...
+[Nest] 40 - 11/14/2025, 3:20:43 PM LOG [NestApplication] Nest application successfully started
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Como Funciona a Inicialização
 
-## Resources
+Quando você executa `docker-compose up -d`, a sequência é:
 
-Check out a few resources that may come in handy when working with NestJS:
+1. PostgreSQL inicia - Cria banco marketplace_db automaticamente
+2. Redis inicia - Cache disponível
+3. NestJS inicia - Script entrypoint.sh executa:
+   - Aguarda PostgreSQL estar pronto
+   - Executa migracoes (npm run typeorm migration:run)
+   - Executa seed (npm run seed) - Popula o banco com dados iniciais (2 ONGs, usuarios e 5 produtos por ONG)
+   - Inicia servidor:
+     - Se NODE_ENV=production: npm run start:prod
+     - Se NODE_ENV=development: npm run start:dev (modo watch)
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+Apos a primeira inicializacao, o banco estara populado com dados de teste:
+- Usuario admin@esperanca.org / senha123
+- Usuario admin@vida.org / senha123
 
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+---
