@@ -12,6 +12,8 @@ import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtAuthGuard } from './common/jwt-auth.guard';
 import { LoggingInterceptor } from './common/logging.interceptor';
 import { OrganizationMiddleware } from './common/organization.middleware';
+import { AuthModule } from './modules/auth/auth.module';
+import { CoreModule } from './modules/core/core.module';
 
 @Module({
     imports: [
@@ -30,6 +32,8 @@ import { OrganizationMiddleware } from './common/organization.middleware';
           useFactory: getRedisConfig,
         }),
         WinstonModule.forRoot(getLoggerConfig()),
+        AuthModule,
+        CoreModule,
     ],
     controllers: [AppController],
     providers: [
