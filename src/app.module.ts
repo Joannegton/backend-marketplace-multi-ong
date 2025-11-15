@@ -6,14 +6,15 @@ import { BullModule } from '@nestjs/bull';
 import { getRedisConfig } from './config/redis.config';
 import { WinstonModule } from 'nest-winston';
 import { getLoggerConfig } from './config/logger.config';
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { JwtAuthGuard } from './common/jwt-auth.guard';
 import { LoggingInterceptor } from './common/logging.interceptor';
 import { OrganizationMiddleware } from './common/organization.middleware';
+import { HttpExceptionFilter } from './exceptions/http-exception.filter';
 import { AuthModule } from './modules/auth/auth.module';
 import { CoreModule } from './modules/core/core.module';
 import { Organization } from './modules/core/infra/entities/organization.entity';
-import { Product } from './modules/core/infra/entities/product.entity';
+import { ProductEntity } from './modules/core/infra/entities/product.entity';
 import { UserEntity } from './modules/core/infra/entities/user.entity';
 
 @Module({
@@ -27,7 +28,7 @@ import { UserEntity } from './modules/core/infra/entities/user.entity';
             inject: [ConfigService],
             useFactory: (configService: ConfigService) => ({
                 ...getDatabaseConfig(configService),
-                entities: [Organization, Product, UserEntity],
+                entities: [Organization, ProductEntity, UserEntity],
             }),
         }),
         BullModule.forRootAsync({
@@ -41,6 +42,10 @@ import { UserEntity } from './modules/core/infra/entities/user.entity';
     ],
     controllers: [],
     providers: [
+        {
+            provide: APP_FILTER,
+            useClass: HttpExceptionFilter,
+        },
         {
             provide: APP_GUARD,
             useClass: JwtAuthGuard,

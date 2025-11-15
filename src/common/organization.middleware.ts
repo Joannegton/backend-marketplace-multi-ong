@@ -4,9 +4,12 @@ import { Request, Response, NextFunction } from 'express';
 @Injectable()
 export class OrganizationMiddleware implements NestMiddleware {
     use(req: Request, res: Response, next: NextFunction) {
-        if(req['user'] && req['user'].organizationId) {
-            req['organizationId'] = req['user'].organizationId;
+        const organizationId = req['user']?.organizationId;
+        
+        if (organizationId) {
+            req['organizationId'] = organizationId;
         }
+        
         next();
     }
 }
