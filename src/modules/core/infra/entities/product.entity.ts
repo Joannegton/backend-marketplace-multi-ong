@@ -36,6 +36,9 @@ export class ProductEntity {
   @Column({ type: 'int', default: 0 })
   stock: number;
 
+  @Column({ type: 'int', default: 0 })
+  reservedStock: number;
+
   @Column({ nullable: true })
   imageUrl: string;
 

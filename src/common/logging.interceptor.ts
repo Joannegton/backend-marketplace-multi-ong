@@ -23,7 +23,7 @@ export class LoggingInterceptor implements NestInterceptor {
             organizationId: request.user?.organizationId || null,
         };
 
-        this.logger.info('Incoming request', logData);
+        this.logger.info('Incoming request', { ...logData, category: 'request' });
 
         return next.handle().pipe(
             tap({
@@ -31,11 +31,17 @@ export class LoggingInterceptor implements NestInterceptor {
                     const response = context.switchToHttp().getResponse();
                     const duration = Date.now() - startTime;
 
-                    this.logger.info('Request completed', {
+                    const logEntry = {
                         ...logData,
                         statusCode: response.statusCode,
                         durationMs: duration,
-                    });
+                    };
+
+                    this.logger.info('Request completed', { ...logEntry, category: 'request' });
+
+                    if (duration > 100) {
+                        this.logger.warn('Slow request', { ...logEntry, category: 'performance' });
+                    }
                 },
                 error: (error) => {
                     const duration = Date.now() - startTime;
@@ -45,6 +51,7 @@ export class LoggingInterceptor implements NestInterceptor {
                         error: error.message,
                         stack: error.stack,
                         durationMs: duration,
+                        category: 'request',
                     });
                 }
             })

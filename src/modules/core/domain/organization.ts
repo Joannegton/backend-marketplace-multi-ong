@@ -16,8 +16,10 @@ export class Organization {
     private readonly _id: string;
     private readonly props: OrganizationProps;
 
-    constructor(id: string) {
-        this._id = id;
+    constructor(id?: string) {
+        if (id) {
+            this._id = id;
+        }
         this.props = {} as OrganizationProps;
     }
 

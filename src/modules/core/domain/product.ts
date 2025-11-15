@@ -20,6 +20,7 @@ type ProductProps = {
     price: number;
     weight: number;
     stock: number;
+    reservedStock: number;
     imageUrl?: string;
     organizationId: string;
     isActive: boolean;
@@ -27,7 +28,7 @@ type ProductProps = {
     updatedAt: Date;
 }
 
-type CreateProductProps = Omit<ProductProps, 'isActive' | 'createdAt' | 'updatedAt'>
+type CreateProductProps = Omit<ProductProps, 'isActive' | 'createdAt' | 'updatedAt' | 'reservedStock'>;
 
 type UpdateProductProps = {
     name?: string;
@@ -57,6 +58,7 @@ export class Product {
         product.setPrice(props.price);
         product.setWeight(props.weight);
         product.setStock(props.stock);
+        product.setReservedStock(0);
         product.setImageUrl(props.imageUrl);
         product.setOrganizationId(props.organizationId);
         product.setIsActive(true);
@@ -70,6 +72,7 @@ export class Product {
         product.setPrice(props.price);
         product.setWeight(props.weight);
         product.setStock(props.stock);
+        product.setReservedStock(props.reservedStock);
         product.setImageUrl(props.imageUrl);
         product.setOrganizationId(props.organizationId);
         product.setIsActive(props.isActive);
@@ -124,6 +127,52 @@ export class Product {
         return this.props.stock === 0;
     }
 
+    getAvailableStock(): number {
+        return this.props.stock - this.props.reservedStock;
+    }
+
+    canReserveStock(quantity: number): boolean {
+        if (!Number.isInteger(quantity) || quantity <= 0) {
+            throw new InvalidPropsException('Quantity must be a positive integer');
+        }
+        if (this.getAvailableStock() < quantity) {
+            return false;
+        }
+        return true;
+    }
+
+    reserveStock(quantity: number): void {
+        if (!this.canReserveStock(quantity)) {
+            throw new InvalidPropsException(
+                `Insufficient stock for product ${this.props.name}. Available: ${this.getAvailableStock()}, Requested: ${quantity}`,
+            );
+        }
+        this.props.reservedStock += quantity;
+    }
+    releaseReservation(quantity: number): void {
+        if (!Number.isInteger(quantity) || quantity <= 0) {
+            throw new InvalidPropsException('Quantity to release must be a positive integer');
+        }
+        if (this.props.reservedStock < quantity) {
+            throw new InvalidPropsException('Cannot release more stock than reserved');
+        }
+        this.props.reservedStock -= quantity;
+    }
+
+    confirmReservedStock(quantity: number): void {
+        if (!Number.isInteger(quantity) || quantity <= 0) {
+            throw new InvalidPropsException('Quantity to confirm must be a positive integer');
+        }
+        if (this.props.reservedStock < quantity) {
+            throw new InvalidPropsException('Cannot confirm more stock than reserved');
+        }
+        if (this.props.stock < quantity) {
+            throw new InvalidPropsException('Insufficient stock to confirm');
+        }
+        this.props.stock -= quantity;
+        this.props.reservedStock -= quantity;
+    }
+
     disable(): void {
         this.setIsActive(false);
     }
@@ -173,6 +222,16 @@ export class Product {
             throw new InvalidPropsException('Stock must be a positive integer');
         }
         this.props.stock = stock;
+    }
+
+    private setReservedStock(reservedStock: number) {
+        if (reservedStock === undefined || reservedStock === null) {
+            reservedStock = 0;
+        }
+        if (reservedStock < 0 || !Number.isInteger(reservedStock)) {
+            throw new InvalidPropsException('Reserved stock must be a positive integer');
+        }
+        this.props.reservedStock = reservedStock;
     }
 
     private setImageUrl(imageUrl?: string) {
@@ -243,6 +302,10 @@ export class Product {
 
     get updatedAt(): Date {
         return this.props.updatedAt;
+    }
+
+    get reservedStock(): number {
+        return this.props.reservedStock;
     }
 
     public toDto(): ProductDto {

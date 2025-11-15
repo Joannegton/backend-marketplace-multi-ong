@@ -45,6 +45,11 @@ export class CreateProducts1700000000002 implements MigrationInterface {
             default: 0,
           },
           {
+            name: 'reservedStock',
+            type: 'int',
+            default: 0,
+          },
+          {
             name: 'imageUrl',
             type: 'varchar',
             length: '500',

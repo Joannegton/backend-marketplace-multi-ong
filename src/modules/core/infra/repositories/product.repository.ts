@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, QueryRunner } from 'typeorm';
 import { ProductRepository } from '../../domain/repositories/product.repository';
 import { Product } from '../../domain/product';
 import { ProductEntity } from '../entities/product.entity';
@@ -18,6 +18,18 @@ export class ProductRepositoryImpl implements ProductRepository {
         try {
             const entity = ProductMapper.toEntity(product);
             const result = await this.productRepository.save(entity);
+            return ProductMapper.toDomain(result);
+        } catch (error) {
+            throw new RepositoryException(
+                `Failed to create product: ${error.message ? error.message : "Unknown error"}`,
+            );
+        }
+    }
+
+    async saveWithQueryRunner(product: Product, queryRunner: QueryRunner): Promise<Product> {
+        try {
+            const entity = ProductMapper.toEntity(product);
+            const result = await queryRunner.manager.save(ProductEntity, entity);
             return ProductMapper.toDomain(result);
         } catch (error) {
             throw new RepositoryException(
@@ -137,6 +149,50 @@ export class ProductRepositoryImpl implements ProductRepository {
         } catch (error) {
             throw new RepositoryException(
                 `Failed to find products by ids: ${error.message ? error.message : "Unknown error"}`,
+            );
+        }
+    }
+
+    async findByIdsWithLock(ids: string[], queryRunner: QueryRunner): Promise<Product[]> {
+        try {
+            const entities = await queryRunner.manager
+                .createQueryBuilder(ProductEntity, 'product')
+                .where('product.id IN (:...ids)', { ids })
+                .andWhere('product.isActive = :isActive', { isActive: true })
+                .setLock('pessimistic_write')
+                .getMany();
+
+            if (entities.length === 0) {
+                return [];
+            }
+
+            const domains = entities.map(item => ProductMapper.toDomain(item));
+
+            return domains;
+        } catch (error) {
+            throw new RepositoryException(
+                `Failed to find products by ids with lock: ${error.message ? error.message : "Unknown error"}`,
+            );
+        }
+    }
+
+    async findByIdWithLock(id: string, queryRunner: QueryRunner): Promise<Product | null> {
+        try {
+            const entity = await queryRunner.manager
+                .createQueryBuilder(ProductEntity, 'product')
+                .where('product.id = :id', { id })
+                .andWhere('product.isActive = :isActive', { isActive: true })
+                .setLock('pessimistic_write')
+                .getOne();
+
+            if (!entity) {
+                return null;
+            }
+
+            return ProductMapper.toDomain(entity);
+        } catch (error) {
+            throw new RepositoryException(
+                `Failed to find product by id with lock: ${error.message ? error.message : "Unknown error"}`,
             );
         }
     }

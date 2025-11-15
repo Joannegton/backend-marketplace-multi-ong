@@ -16,6 +16,11 @@ import { CoreModule } from './modules/core/core.module';
 import { Organization } from './modules/core/infra/entities/organization.entity';
 import { ProductEntity } from './modules/core/infra/entities/product.entity';
 import { UserEntity } from './modules/core/infra/entities/user.entity';
+import { OrderEntity } from './modules/core/infra/entities/order.entity';
+import { OrderItemEntity } from './modules/core/infra/entities/order-item.entity';
+import { ShoppingCartEntity } from './modules/core/infra/entities/shopping-cart.entity';
+import { ProductController } from './modules/core/controllers/product.controller';
+import { OrderController } from './modules/core/controllers/order.controller';
 
 @Module({
     imports: [
@@ -28,7 +33,7 @@ import { UserEntity } from './modules/core/infra/entities/user.entity';
             inject: [ConfigService],
             useFactory: (configService: ConfigService) => ({
                 ...getDatabaseConfig(configService),
-                entities: [Organization, ProductEntity, UserEntity],
+                entities: [Organization, ProductEntity, UserEntity, OrderEntity, OrderItemEntity, ShoppingCartEntity],
             }),
         }),
         BullModule.forRootAsync({
@@ -59,6 +64,6 @@ import { UserEntity } from './modules/core/infra/entities/user.entity';
 
 export class AppModule {
     configure(consumer: MiddlewareConsumer) {
-        consumer.apply(OrganizationMiddleware).forRoutes('*');
+        consumer.apply(OrganizationMiddleware).forRoutes(ProductController, OrderController);
     }
 }

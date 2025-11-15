@@ -7,6 +7,7 @@ import { OrganizationRepository } from "../../domain/repositories/organization.r
 import { RepositoryException } from "src/exceptions/repository.exception";
 import { WINSTON_MODULE_PROVIDER } from "nest-winston";
 import { Logger as WinstonLogger } from "winston";
+import { OrganizationMapper } from "../mappers/organization.mapper";
 
 @Injectable()
 export class OrganizationRepositoryImpl implements OrganizationRepository {
@@ -18,25 +19,15 @@ export class OrganizationRepositoryImpl implements OrganizationRepository {
 
     async find(): Promise<Organization[] | null> {
         try {
-            this.logger.info('Fetching all organizations');
-
             const entities = await this.organizationRepository.find();
             if (entities.length === 0) {
                 this.logger.warn('No organizations found in database');
                 return null;
             }
 
-            const domains = entities.map((entity) =>
-                Organization.load({
-                    name: entity.name,
-                    description: entity.description,
-                    isActive: entity.isActive,
-                    createdAt: entity.createdAt,
-                    updatedAt: entity.updatedAt,
-                }, entity.id)
+            const domains = entities.map((entity) => OrganizationMapper.toDomain(entity)
             );
 
-            this.logger.info('Organizations fetched successfully', { count: domains.length });
             return domains;
         } catch (error) {
             this.logger.error('Error fetching organizations', {
@@ -49,23 +40,14 @@ export class OrganizationRepositoryImpl implements OrganizationRepository {
 
     async findById(id: string): Promise<Organization | null> {
         try {
-            this.logger.info('Fetching organization by ID', { organizationId: id });
-
             const entity = await this.organizationRepository.findOne({ where: { id } });
             if (!entity) {
                 this.logger.warn('Organization not found', { organizationId: id });
                 return null;
             }
 
-            const domain = Organization.load({
-                name: entity.name,
-                description: entity.description,
-                isActive: entity.isActive,
-                createdAt: entity.createdAt,
-                updatedAt: entity.updatedAt,
-            }, entity.id);
+            const domain = OrganizationMapper.toDomain(entity);
 
-            this.logger.info('Organization fetched by ID successfully', { organizationId: id });
             return domain;
         } catch (error) {
             this.logger.error('Error fetching organization by ID', {
@@ -79,23 +61,14 @@ export class OrganizationRepositoryImpl implements OrganizationRepository {
 
     async findByName(name: string): Promise<Organization | null> {
         try {
-            this.logger.info('Fetching organization by name', { name });
-
             const entity = await this.organizationRepository.findOne({ where: { name } });
             if (!entity) {
                 this.logger.warn('Organization not found', { name });
                 return null;
             }
 
-            const domain = Organization.load({
-                name: entity.name,
-                description: entity.description,
-                isActive: entity.isActive,
-                createdAt: entity.createdAt,
-                updatedAt: entity.updatedAt,
-            }, entity.id);
+            const domain = OrganizationMapper.toDomain(entity);
 
-            this.logger.info('Organization fetched by name successfully', { name });
             return domain;
         } catch (error) {
             this.logger.error('Error fetching organization by name', {
