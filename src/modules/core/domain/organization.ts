@@ -1,12 +1,13 @@
 import { InvalidPropsException } from "src/exceptions/invalidProps.exception";
 import { User } from "src/modules/core/domain/user";
+import { Product } from "./product";
 
 type OrganizationProps = {
     name: string;
     description: string;
     isActive: boolean;
     users?: User[];
-    products?: any[]; //TODO implementar
+    products?: Product[];
     createdAt: Date;
     updatedAt: Date;
 }
@@ -27,6 +28,8 @@ export class Organization {
         organization.setIsActive(props.isActive);
         organization.setUsers(props.users || []);
         organization.setProducts(props.products || []);
+        organization.setCreatedAt(props.createdAt);
+        organization.setUpdatedAt(props.updatedAt);
         return organization;
     }
 
@@ -57,6 +60,14 @@ export class Organization {
 
     private setProducts(products: any[]) {
         this.props.products = products;
+    }
+
+    private setCreatedAt(createdAt: Date) {
+        this.props.createdAt = createdAt;
+    }
+
+    private setUpdatedAt(updatedAt: Date) {
+        this.props.updatedAt = updatedAt;
     }
 
     get id(): string {
