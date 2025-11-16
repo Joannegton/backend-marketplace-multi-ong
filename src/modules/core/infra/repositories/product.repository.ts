@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, QueryRunner } from 'typeorm';
+import { Repository, QueryRunner } from 'typeorm';
 import { ProductRepository } from '../../domain/repositories/product.repository';
 import { Product } from '../../domain/product';
 import { ProductEntity } from '../entities/product.entity';
@@ -101,6 +101,29 @@ export class ProductRepositoryImpl implements ProductRepository {
         }
     }
 
+    async findAll(onlyActive: boolean = true): Promise<Product[]> {
+        try {
+            const query = this.productRepository.createQueryBuilder('product');
+
+            if (onlyActive) {
+                query.where('product.isActive = :isActive', { isActive: true });
+            }
+
+            query.orderBy('product.createdAt', 'DESC');
+
+            const entity = await query.getMany();
+            if (entity.length === 0) {
+                return [];
+            }
+
+            return entity.map(item => ProductMapper.toDomain(item));
+        } catch (error) {
+            throw new RepositoryException(
+                `Failed to find all products: ${error.message ? error.message : "Unknown error"}`,
+            );
+        }
+    }
+
     async findAllByOrganizationId(
         organizationId: string,
         onlyActive: boolean = true,
@@ -193,6 +216,62 @@ export class ProductRepositoryImpl implements ProductRepository {
         } catch (error) {
             throw new RepositoryException(
                 `Failed to find product by id with lock: ${error.message ? error.message : "Unknown error"}`,
+            );
+        }
+    }
+
+    async search(
+        query: string,
+        minPrice?: number,
+        maxPrice?: number,
+        limit: number = 10,
+    ): Promise<Product[]> {
+        try {
+            const queryBuilder = this.productRepository
+                .createQueryBuilder('product')
+                .where('product.isActive = :isActive', { isActive: true });
+
+            const terms = query
+                .split(',')
+                .map(term => term.trim())
+                .filter(term => term.length > 0);
+
+            if (terms.length > 0) {
+                const orConditions = terms
+                    .map(
+                        (_, index) =>
+                            `(product.name ILIKE :term${index} OR product.description ILIKE :term${index})`,
+                    )
+                    .join(' OR ');
+
+                const params = {};
+                for (let i = 0; i < terms.length; i++) {
+                    params[`term${i}`] = `%${terms[i]}%`;
+                }
+
+                queryBuilder.andWhere(`(${orConditions})`, params);
+            }
+
+            if (minPrice !== undefined) {
+                queryBuilder.andWhere('product.price >= :minPrice', { minPrice });
+            }
+
+            if (maxPrice !== undefined) {
+                queryBuilder.andWhere('product.price <= :maxPrice', { maxPrice });
+            }
+
+            queryBuilder.orderBy('product.createdAt', 'DESC').take(limit);
+
+            const entities = await queryBuilder.getMany();
+
+            if (entities.length === 0) {
+                return [];
+            }
+
+            return entities.map(item => ProductMapper.toDomain(item));
+        } catch (error) {
+            throw new RepositoryException(
+                `Failed to search products: ${error.message ? error.message : "Unknown error"}`,
             );
         }
     }

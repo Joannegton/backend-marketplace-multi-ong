@@ -16,6 +16,7 @@ import {
   FindProductUseCase,
   ListProductsUseCase,
   UpdateProductUseCase,
+  SearchProductsUseCase,
   GetOrderUseCase,
   GetOrganizationOrderUseCase,
   ListOrganizationOrdersUseCase,
@@ -28,6 +29,7 @@ import { OrdersProcessor } from './infra/services/processors/order-processor.ser
 import { ShoppingCartProcessor } from './infra/services/processors/shopping-cart-processor.service';
 import { ReservationService } from './infra/services/reservation.service';
 import { ShoppingCartCacheService } from './infra/services/shopping-cart-cache.service';
+import { OpenAiService } from './infra/services/openai.service';
 import { ExpireShoppingCartsJob } from './infra/jobs/expire-shopping-carts.job';
 import { CartController } from './controllers/cart.controller';
 import { OrderController } from './controllers/order.controller';
@@ -79,6 +81,7 @@ import { OrderController } from './controllers/order.controller';
     FindProductUseCase,
     ListProductsUseCase,
     UpdateProductUseCase,
+    SearchProductsUseCase,
     DisableProductUseCase,
     GetOrderUseCase,
     GetOrganizationOrderUseCase,
@@ -87,6 +90,7 @@ import { OrderController } from './controllers/order.controller';
     CheckoutUseCase,
     GetCartUseCase,
     DeleteCartUseCase,
+    OpenAiService,
     OrdersProcessor,
     ShoppingCartProcessor,
     ExpireShoppingCartsJob,
@@ -103,6 +107,7 @@ import { OrderController } from './controllers/order.controller';
     FindProductUseCase,
     ListProductsUseCase,
     UpdateProductUseCase,
+    SearchProductsUseCase,
     DisableProductUseCase,
     GetOrderUseCase,
     GetOrganizationOrderUseCase,

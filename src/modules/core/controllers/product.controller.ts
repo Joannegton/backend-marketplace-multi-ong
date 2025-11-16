@@ -5,31 +5,38 @@ import {
     Patch,
     Body,
     Param,
-    UseGuards,
     HttpCode,
     HttpStatus,
+    Query,
 } from '@nestjs/common';
-import { CreateProductUseCase, FindProductUseCase, ListProductsUseCase, UpdateProductUseCase } from '../application/usecases';
+import { CreateProductUseCase, FindProductUseCase, ListProductsUseCase, UpdateProductUseCase, SearchProductsUseCase } from '../application/usecases';
 import { DisableProductUseCase } from '../application/usecases/products/disable-product.usecase';
-import { JwtAuthGuard } from 'src/common/jwt-auth.guard';
 import { UpdateProductDto } from '../application/dtos/products/updateProduct.dto';
 import { OrganizationId } from 'src/common/decorators/organization-id.decorator';
 import { CreateProductDto } from '../application/dtos/products/createProduct.dto';
+import { SearchProductsDto } from '../application/dtos/search-products.dto';
 import { Public } from 'src/common/decorators/public.decorator';
 
 
 @Controller('products')
 export class ProductController {
     constructor(
-        private createProductUseCase: CreateProductUseCase,
-        private findProductUseCase: FindProductUseCase,
-        private listProductsUseCase: ListProductsUseCase,
-        private updateProductUseCase: UpdateProductUseCase,
-        private disableProductUseCase: DisableProductUseCase
+        private readonly createProductUseCase: CreateProductUseCase,
+        private readonly findProductUseCase: FindProductUseCase,
+        private readonly listProductsUseCase: ListProductsUseCase,
+        private readonly updateProductUseCase: UpdateProductUseCase,
+        private readonly disableProductUseCase: DisableProductUseCase,
+        private readonly searchProductsUseCase: SearchProductsUseCase,
     ) {}
 
+    @Get('search')
+    @HttpCode(HttpStatus.OK)
+    @Public()
+    async search(@Query() dto: SearchProductsDto) {
+        return this.searchProductsUseCase.execute(dto);
+    }
+
     @Post()
-    @UseGuards(JwtAuthGuard)
     @HttpCode(HttpStatus.CREATED)
     async create(
         @Body() dto: CreateProductDto,
@@ -43,7 +50,6 @@ export class ProductController {
     }
 
     @Patch(':id')
-    @UseGuards(JwtAuthGuard)
     @HttpCode(HttpStatus.OK)
     async update(
         @Param('id') id: string,
@@ -60,21 +66,18 @@ export class ProductController {
     }
 
     @Get()
-    @UseGuards(JwtAuthGuard)
     @HttpCode(HttpStatus.OK)
     async findAllOrganization(@OrganizationId() organizationId: string) {
         return this.listProductsUseCase.execute(organizationId);
     }
 
     @Get(':id')
-    @UseGuards(JwtAuthGuard)
     @HttpCode(HttpStatus.OK)
     async findOneOrganization(@Param('id') id: string, @OrganizationId() organizationId: string) {
         return this.findProductUseCase.execute({ id, organizationId });
     }
     
     @Patch(':id/disable')
-    @UseGuards(JwtAuthGuard)
     @HttpCode(HttpStatus.OK)
     async disable(
         @Param('id') id: string,
