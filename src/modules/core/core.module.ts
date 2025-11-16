@@ -23,12 +23,13 @@ import {
 } from './application/usecases';
 import { DisableProductUseCase } from './application/usecases/products/disable-product.usecase';
 import { AddItemToCartUseCase, CheckoutUseCase, GetCartUseCase, DeleteCartUseCase } from './application/usecases/cart';
-import { ORGANIZATION_REPOSITORY, PRODUCT_REPOSITORY, ORDER_REPOSITORY, SHOPPING_CART_REPOSITORY, RESERVATION_SERVICE } from './core.tokens';
+import { ORGANIZATION_REPOSITORY, PRODUCT_REPOSITORY, ORDER_REPOSITORY, SHOPPING_CART_REPOSITORY, RESERVATION_SERVICE, PRODUCT_CACHE_SERVICE } from './core.tokens';
 import { ProductController } from './controllers/product.controller';
 import { OrdersProcessor } from './infra/services/processors/order-processor.service';
 import { ShoppingCartProcessor } from './infra/services/processors/shopping-cart-processor.service';
 import { ReservationService } from './infra/services/reservation.service';
 import { ShoppingCartCacheService } from './infra/services/shopping-cart-cache.service';
+import { ProductCacheService } from './infra/services/product-cache.service';
 import { OpenAiService } from './infra/services/openai.service';
 import { ExpireShoppingCartsJob } from './infra/jobs/expire-shopping-carts.job';
 import { CartController } from './controllers/cart.controller';
@@ -77,6 +78,10 @@ import { OrderController } from './controllers/order.controller';
       provide: RESERVATION_SERVICE,
       useClass: ReservationService,
     },
+    {
+      provide: PRODUCT_CACHE_SERVICE,
+      useClass: ProductCacheService,
+    },
     CreateProductUseCase,
     FindProductUseCase,
     ListProductsUseCase,
@@ -103,6 +108,7 @@ import { OrderController } from './controllers/order.controller';
     ORDER_REPOSITORY,
     SHOPPING_CART_REPOSITORY,
     RESERVATION_SERVICE,
+    PRODUCT_CACHE_SERVICE,
     CreateProductUseCase,
     FindProductUseCase,
     ListProductsUseCase,

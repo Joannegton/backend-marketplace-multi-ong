@@ -5,8 +5,9 @@ import { OpenAiService } from '../../../infra/services/openai.service';
 import type { ProductRepository } from '../../../domain/repositories/product.repository';
 import { Product } from '../../../domain/product';
 import { SearchProductsDto } from '../../dtos/search-products.dto';
-import { PRODUCT_REPOSITORY } from '../../../core.tokens';
+import { PRODUCT_REPOSITORY, PRODUCT_CACHE_SERVICE } from '../../../core.tokens';
 import { InvalidPropsException } from 'src/exceptions/invalidProps.exception';
+import { ProductCacheService } from '../../../infra/services/product-cache.service';
 
 export interface SearchResult {
     query: string;
@@ -26,6 +27,8 @@ export class SearchProductsUseCase {
         @Inject(PRODUCT_REPOSITORY)
         private readonly productRepository: ProductRepository,
         private readonly openAiService: OpenAiService,
+        @Inject(PRODUCT_CACHE_SERVICE)
+        private readonly cacheService: ProductCacheService,
         @Inject(WINSTON_MODULE_PROVIDER)
         private readonly logger: Logger,
     ) {}
@@ -38,6 +41,25 @@ export class SearchProductsUseCase {
 
         const limit = props.limit || 10;
         const offset = props.offset || 0;
+
+        const searchCacheKey = this.cacheService.generateSearchKey(
+            props.query,
+            props.minPrice,
+            props.maxPrice,
+            props.category,
+            limit,
+            offset,
+        );
+
+        const cachedResult = await this.cacheService.getSearch(searchCacheKey);
+        if (cachedResult) {
+            this.logger.debug('Search cache hit', {
+                query: props.query,
+                latency: `${Date.now() - startTime}ms`,
+                category: 'cache',
+            });
+            return cachedResult;
+        }
 
         try {
             const enhancedQuery = await this.openAiService.enhanceQuery(
@@ -62,15 +84,7 @@ export class SearchProductsUseCase {
 
             const total = results.length > 0 ? results[0]['__total__'] || results.length : 0;
 
-            this.logger.info('Search completed successfully', {
-                query: props.query,
-                resultsCount: results.length,
-                totalLatency: `${Date.now() - startTime}ms`,
-                usedAI: true,
-                pagination: { limit, offset, total },
-            });
-
-            return {
+            const searchResult: SearchResult = {
                 query: props.query,
                 enhancedQuery,
                 results,
@@ -81,6 +95,18 @@ export class SearchProductsUseCase {
                     hasMore: offset + limit < total,
                 },
             };
+
+            this.logger.info('Search completed successfully', {
+                query: props.query,
+                resultsCount: results.length,
+                totalLatency: `${Date.now() - startTime}ms`,
+                usedAI: true,
+                pagination: { limit, offset, total },
+            });
+
+            await this.cacheService.setSearch(searchCacheKey, searchResult);
+
+            return searchResult;
         } catch (error) {
             this.logger.warn('Query enhancement failed, using fallback', {
                 query: props.query,
@@ -99,15 +125,7 @@ export class SearchProductsUseCase {
 
             const total = results.length > 0 ? results[0]['__total__'] || results.length : 0;
 
-            this.logger.info('Fallback search completed', {
-                query: props.query,
-                resultsCount: results.length,
-                totalLatency: `${Date.now() - startTime}ms`,
-                usedAI: false,
-                pagination: { limit, offset, total },
-            });
-
-            return {
+            const searchResult: SearchResult = {
                 query: props.query,
                 enhancedQuery: props.query,
                 results,
@@ -118,6 +136,18 @@ export class SearchProductsUseCase {
                     hasMore: offset + limit < total,
                 },
             };
+
+            this.logger.info('Fallback search completed', {
+                query: props.query,
+                resultsCount: results.length,
+                totalLatency: `${Date.now() - startTime}ms`,
+                usedAI: false,
+                pagination: { limit, offset, total },
+            });
+
+            await this.cacheService.setSearch(searchCacheKey, searchResult);
+
+            return searchResult;
         }
     }
 }

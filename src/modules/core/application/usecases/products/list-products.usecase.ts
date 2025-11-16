@@ -1,7 +1,9 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ProductDto } from '../../../domain/product';
 import { InvalidPropsException } from 'src/exceptions/invalidProps.exception';
-import { PRODUCT_REPOSITORY } from '../../../core.tokens';
+import { PRODUCT_REPOSITORY, PRODUCT_CACHE_SERVICE } from '../../../core.tokens';
+import { ProductCacheService } from '../../../infra/services/product-cache.service';
+import type { ProductRepository } from 'src/modules/core/domain/repositories/product.repository';
 
 export interface CatalogResult {
     results: ProductDto[];
@@ -15,16 +17,25 @@ export interface CatalogResult {
 
 @Injectable()
 export class ListProductsUseCase {
-    constructor(@Inject(PRODUCT_REPOSITORY) private readonly productRepository) {}
+    constructor(
+        @Inject(PRODUCT_REPOSITORY) private readonly productRepository: ProductRepository,
+        @Inject(PRODUCT_CACHE_SERVICE) private readonly cacheService: ProductCacheService,
+    ) {}
 
     async execute(organizationId: string): Promise<ProductDto[]> {
         if (!organizationId) {
             throw new InvalidPropsException('Organization ID is required');
         }
 
-        const products = await this.productRepository.findAllByOrganizationId(organizationId);
+        const cachedProducts = await this.cacheService.getOrgProducts(organizationId);
+        if (cachedProducts) {
+            return cachedProducts;
+        }
 
+        const products = await this.productRepository.findAllByOrganizationId(organizationId);
         const productsDto = products.map((product) => product.toDto());
+
+        await this.cacheService.setOrgProducts(organizationId, products);
 
         return productsDto;
     }
@@ -37,6 +48,11 @@ export class ListProductsUseCase {
             offset = 0;
         }
 
+        const cachedResult = await this.cacheService.getCatalog(limit, offset);
+        if (cachedResult) {
+            return cachedResult;
+        }
+
         const allProducts = await this.productRepository.findAll(true);
         const total = allProducts.length;
 
@@ -44,7 +60,7 @@ export class ListProductsUseCase {
 
         const resultsDto = products.map((product) => product.toDto());
 
-        return {
+        const result: CatalogResult = {
             results: resultsDto,
             pagination: {
                 limit,
@@ -53,5 +69,9 @@ export class ListProductsUseCase {
                 hasMore: offset + limit < total,
             },
         };
+
+        await this.cacheService.setCatalog(limit, offset, result);
+
+        return result;
     }
 }

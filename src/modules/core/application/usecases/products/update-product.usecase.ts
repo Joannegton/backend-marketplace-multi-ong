@@ -1,8 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException, ConflictException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, Inject } from '@nestjs/common';
 import { UpdateProductDto } from '../../dtos/products/updateProduct.dto';
 import { ProductDto } from '../../../domain/product';
-import { PRODUCT_REPOSITORY } from '../../../core.tokens';
+import { PRODUCT_REPOSITORY, PRODUCT_CACHE_SERVICE } from '../../../core.tokens';
 import { InvalidPropsException } from 'src/exceptions/invalidProps.exception';
+import { ProductCacheService } from '../../../infra/services/product-cache.service';
+import type { ProductRepository } from 'src/modules/core/domain/repositories/product.repository';
 
 type UpdateProductUseCaseProps = {
     id: string;
@@ -12,7 +14,10 @@ type UpdateProductUseCaseProps = {
 
 @Injectable()
 export class UpdateProductUseCase {
-    constructor(@Inject(PRODUCT_REPOSITORY) private productRepository) {}
+    constructor(
+        @Inject(PRODUCT_REPOSITORY) private readonly productRepository: ProductRepository,
+        @Inject(PRODUCT_CACHE_SERVICE) private readonly cacheService: ProductCacheService,
+    ) {}
 
     async execute(
         props: UpdateProductUseCaseProps,
@@ -48,6 +53,8 @@ export class UpdateProductUseCase {
         });
 
         const updatedProduct = await this.productRepository.save(product);
+
+        await this.cacheService.invalidateAllProductCaches(props.organizationId);
 
         return updatedProduct.toDto();
     }
