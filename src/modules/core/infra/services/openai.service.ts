@@ -21,7 +21,11 @@ export class OpenAiService {
 
     async enhanceQuery(query: string): Promise<string> {
         try {
-            const response = await this.openaiClient.chat.completions.create({
+            const timeoutPromise = new Promise<string>((_, reject) =>
+                setTimeout(() => reject(new Error('OpenAI API call timed out after 5s')), 5000)
+            );
+
+            const apiCallPromise = this.openaiClient.chat.completions.create({
                 model: 'gpt-4o-mini',
                 messages: [
                     {
@@ -38,16 +42,25 @@ export class OpenAiService {
                 temperature: 0,
             });
 
+            const response = await Promise.race([apiCallPromise, timeoutPromise]);
+
             const enhancedQuery =
+                typeof response === 'string' ? response :
                 response.choices[0]?.message?.content?.trim() || query;
 
             return enhancedQuery;
         } catch (error) {
-            this.logger.error('GPT-4o-mini API call failed', {
-                query,
-                error: error.message,
-                code: error.code,
-            });
+            if (error?.message?.includes('timed out')) {
+                this.logger.error('GPT-4o-mini API call timed out (5s)', {
+                    query,
+                });
+            } else {
+                this.logger.error('GPT-4o-mini API call failed', {
+                    query,
+                    error: error?.message,
+                    code: error?.code,
+                });
+            }
             throw error;
         }
     }

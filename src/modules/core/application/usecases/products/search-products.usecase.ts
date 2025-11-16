@@ -12,6 +12,12 @@ export interface SearchResult {
     query: string;
     enhancedQuery: string;
     results: Product[];
+    pagination: {
+        limit: number;
+        offset: number;
+        total: number;
+        hasMore: boolean;
+    };
 }
 
 @Injectable()
@@ -30,6 +36,9 @@ export class SearchProductsUseCase {
             throw new InvalidPropsException('Query is required');
         }
 
+        const limit = props.limit || 10;
+        const offset = props.offset || 0;
+
         try {
             const enhancedQuery = await this.openAiService.enhanceQuery(
                 props.query,
@@ -46,20 +55,31 @@ export class SearchProductsUseCase {
                 enhancedQuery,
                 props.minPrice,
                 props.maxPrice,
-                props.limit,
+                limit,
+                offset,
+                props.category,
             );
+
+            const total = results.length > 0 ? results[0]['__total__'] || results.length : 0;
 
             this.logger.info('Search completed successfully', {
                 query: props.query,
                 resultsCount: results.length,
                 totalLatency: `${Date.now() - startTime}ms`,
                 usedAI: true,
+                pagination: { limit, offset, total },
             });
 
             return {
                 query: props.query,
                 enhancedQuery,
                 results,
+                pagination: {
+                    limit,
+                    offset,
+                    total,
+                    hasMore: offset + limit < total,
+                },
             };
         } catch (error) {
             this.logger.warn('Query enhancement failed, using fallback', {
@@ -72,20 +92,31 @@ export class SearchProductsUseCase {
                 props.query,
                 props.minPrice,
                 props.maxPrice,
-                props.limit,
+                limit,
+                offset,
+                props.category,
             );
+
+            const total = results.length > 0 ? results[0]['__total__'] || results.length : 0;
 
             this.logger.info('Fallback search completed', {
                 query: props.query,
                 resultsCount: results.length,
                 totalLatency: `${Date.now() - startTime}ms`,
                 usedAI: false,
+                pagination: { limit, offset, total },
             });
 
             return {
                 query: props.query,
                 enhancedQuery: props.query,
                 results,
+                pagination: {
+                    limit,
+                    offset,
+                    total,
+                    hasMore: offset + limit < total,
+                },
             };
         }
     }
