@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import type { Logger } from 'winston';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -11,9 +11,7 @@ import { Repository, LessThan } from 'typeorm';
 import { ShoppingCartEntity } from '../entities/shopping-cart.entity';
 
 @Injectable()
-export class ExpireShoppingCartsJob {
-    private readonly cartTtlMilliseconds: number;
-
+export class ExpireShoppingCartsJob implements OnModuleInit {
     constructor(
         @InjectRepository(ShoppingCartEntity)
         private readonly cartRepository: Repository<ShoppingCartEntity>,
@@ -23,24 +21,38 @@ export class ExpireShoppingCartsJob {
         private readonly logger: Logger,
         private readonly configService: ConfigService,
     ) {
-        const cartTtlMinutes = this.configService.get<number>('CART_TTL_MINUTES', 20);
-        this.cartTtlMilliseconds = cartTtlMinutes * 60 * 1000;
+    }
+
+    async onModuleInit() {
+        // Executa o job imediatamente quando a aplicação inicia
+        this.logger.info('🚀 Application started - running initial shopping cart cleanup', {
+            category: 'business',
+        });
+        await this.expireShoppingCarts();
     }
 
     @Cron(CronExpression.EVERY_10_MINUTES)
     async expireShoppingCarts(): Promise<void> {
+        this.logger.info('Shopping cart expiration job started', {
+            timestamp: new Date().toISOString(),
+            category: 'business',
+        });
+
         try {
             const now = new Date();
-            const expiryThreshold = new Date(now.getTime() - this.cartTtlMilliseconds);
 
             const expiredCarts = await this.cartRepository.find({
                 where: {
                     status: ShoppingCartStatus.ACTIVE,
-                    expiresAt: LessThan(expiryThreshold),
+                    expiresAt: LessThan(now),
                 },
             });
 
             if (expiredCarts.length === 0) {
+                this.logger.debug('No expired shopping carts found', {
+                    checkedAt: now,
+                    category: 'business',
+                });
                 return;
             }
 
