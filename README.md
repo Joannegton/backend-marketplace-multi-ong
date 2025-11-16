@@ -89,7 +89,8 @@ Quando você executa `docker-compose up -d`, a sequência é:
      - Se NODE_ENV=development: npm run start:dev (modo watch)
 
 Apos a primeira inicializacao, o banco estara populado com dados de teste:
-- Usuario admin@esperanca.org / senha123
-- Usuario admin@vida.org / senha123
+- Usuario admin@esperanca.org / Senha@123
+- Usuario admin@vida.org / Segura#456
+- Usuario admin@artesanato.org / Admin!789
 
 ---

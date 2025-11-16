@@ -42,6 +42,9 @@ export class ProductEntity {
   @Column({ nullable: true })
   imageUrl: string;
 
+  @Column({ nullable: false })
+  category: string;
+
   @Column({ default: true })
   isActive: boolean;
 

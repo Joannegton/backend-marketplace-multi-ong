@@ -17,6 +17,8 @@ export interface ProductRepository {
         minPrice?: number,
         maxPrice?: number,
         limit?: number,
+        offset?: number,
+        category?: string,
     ): Promise<Product[]>;
     disable(id: string, organizationId: string): Promise<void>;
 }

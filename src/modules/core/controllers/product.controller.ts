@@ -29,6 +29,13 @@ export class ProductController {
         private readonly searchProductsUseCase: SearchProductsUseCase,
     ) {}
 
+    @Get('catalog')
+    @HttpCode(HttpStatus.OK)
+    @Public()
+    async catalog(@Query('limit') limit?: number, @Query('offset') offset?: number) {
+        return this.listProductsUseCase.executeCatalog(limit || 10, offset || 0);
+    }
+
     @Get('search')
     @HttpCode(HttpStatus.OK)
     @Public()

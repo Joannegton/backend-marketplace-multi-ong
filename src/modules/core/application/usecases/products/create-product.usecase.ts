@@ -31,6 +31,7 @@ export class CreateProductUseCase {
             weight: props.weight,
             stock: props.stock,
             imageUrl: props.imageUrl,
+            category: props.category,
             organizationId: props.organizationId,
         });
 

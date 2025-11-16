@@ -8,6 +8,7 @@ export type ProductDto = {
     weight: number;
     stock: number;
     imageUrl?: string;
+    category: string;
     organizationId: string;
     isActive: boolean;
     createdAt: Date;
@@ -22,6 +23,7 @@ type ProductProps = {
     stock: number;
     reservedStock: number;
     imageUrl?: string;
+    category: string;
     organizationId: string;
     isActive: boolean;
     createdAt: Date;
@@ -37,6 +39,7 @@ type UpdateProductProps = {
     weight?: number;
     stock?: number;
     imageUrl?: string;
+    category?: string;
     organizationId: string;
 }
 
@@ -60,6 +63,7 @@ export class Product {
         product.setStock(props.stock);
         product.setReservedStock(0);
         product.setImageUrl(props.imageUrl);
+        product.setCategory(props.category);
         product.setOrganizationId(props.organizationId);
         product.setIsActive(true);
         return product;
@@ -74,6 +78,7 @@ export class Product {
         product.setStock(props.stock);
         product.setReservedStock(props.reservedStock);
         product.setImageUrl(props.imageUrl);
+        product.setCategory(props.category);
         product.setOrganizationId(props.organizationId);
         product.setIsActive(props.isActive);
         product.setCreatedAt(props.createdAt);
@@ -95,6 +100,7 @@ export class Product {
         if (props.weight !== undefined) this.setWeight(props.weight);
         if (props.stock !== undefined) this.setStock(props.stock);
         if (props.imageUrl !== undefined) this.setImageUrl(props.imageUrl);
+        if (props.category !== undefined) this.setCategory(props.category);
         return;
     }
 
@@ -241,6 +247,16 @@ export class Product {
         this.props.imageUrl = imageUrl;
     }
 
+    private setCategory(category: string) {
+        if (!category || category.trim().length === 0) {
+            throw new InvalidPropsException('Category is required');
+        }
+        if (category.length > 100) {
+            throw new InvalidPropsException('Category must not exceed 100 characters');
+        }
+        this.props.category = category;
+    }
+
     private setOrganizationId(organizationId: string) {
         if (!organizationId) {
             throw new InvalidPropsException('Organization ID is required');
@@ -288,6 +304,10 @@ export class Product {
         return this.props.imageUrl;
     }
 
+    get category(): string {
+        return this.props.category;
+    }
+
     get organizationId(): string {
         return this.props.organizationId;
     }
@@ -317,6 +337,7 @@ export class Product {
             weight: this.props.weight,
             stock: this.props.stock,
             imageUrl: this.props.imageUrl,
+            category: this.props.category,
             organizationId: this.props.organizationId,
             isActive: this.props.isActive,
             createdAt: this.props.createdAt,

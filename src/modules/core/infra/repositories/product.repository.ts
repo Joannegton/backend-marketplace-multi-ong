@@ -225,6 +225,8 @@ export class ProductRepositoryImpl implements ProductRepository {
         minPrice?: number,
         maxPrice?: number,
         limit: number = 10,
+        offset: number = 0,
+        category?: string,
     ): Promise<Product[]> {
         try {
             const queryBuilder = this.productRepository
@@ -260,7 +262,13 @@ export class ProductRepositoryImpl implements ProductRepository {
                 queryBuilder.andWhere('product.price <= :maxPrice', { maxPrice });
             }
 
-            queryBuilder.orderBy('product.createdAt', 'DESC').take(limit);
+            if (category !== undefined && category.trim().length > 0) {
+                queryBuilder.andWhere('product.category ILIKE :category', { category: `%${category}%` });
+            }
+
+            queryBuilder.orderBy('product.createdAt', 'DESC')
+                .skip(offset)
+                .take(limit);
 
             const entities = await queryBuilder.getMany();
 

@@ -56,6 +56,13 @@ export class CreateProducts1700000000002 implements MigrationInterface {
             isNullable: true,
           },
           {
+            name: 'category',
+            type: 'varchar',
+            length: '100',
+            isNullable: false,
+            default: "'general'",
+          },
+          {
             name: 'isActive',
             type: 'boolean',
             default: true,

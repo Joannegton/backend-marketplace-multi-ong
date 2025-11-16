@@ -24,4 +24,8 @@ export class CreateProductDto {
     @IsString()
     @IsOptional()
     imageUrl?: string;
+
+    @IsString()
+    @IsNotEmpty()
+    category: string;
 }
