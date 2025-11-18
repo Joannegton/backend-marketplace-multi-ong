@@ -1,23 +1,26 @@
 # compiled output
-/dist
-/node_modules
-/build
+/backend/dist
+/backend/node_modules
+/frontend/node_modules
+/backend/build
+
+/frontend/.next/
 
 # Logs
-logs
-*.log
-npm-debug.log*
-pnpm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
+/backend/logs
+/backend/*.log
+/backend/npm-debug.log*
+/backend/pnpm-debug.log*
+/backend/yarn-debug.log*
+/backend/yarn-error.log*
+/backend/lerna-debug.log*
 
 # OS
-.DS_Store
+/backend/.DS_Store
 
 # Tests
-/coverage
-/.nyc_output
+/backend/coverage
+/backend/.nyc_output
 
 # IDEs and editors
 /.idea
