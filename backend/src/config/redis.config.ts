@@ -1,8 +1,11 @@
 import { BullModuleOptions } from '@nestjs/bull';
 import { ConfigService } from '@nestjs/config';
 
-export const getRedisConfig = (configService: ConfigService): BullModuleOptions => {
-    const redisUrl = configService.get<string>('REDIS_URL') || 'redis://localhost:6379';
+export const getRedisConfig = (
+    configService: ConfigService,
+): BullModuleOptions => {
+    const redisUrl =
+        configService.get<string>('REDIS_URL') || 'redis://redis:6379';
     return {
         redis: redisUrl,
         defaultJobOptions: {

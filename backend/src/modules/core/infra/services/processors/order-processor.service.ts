@@ -23,7 +23,7 @@ export class OrdersProcessor implements OnModuleInit {
 
     onModuleInit() {
         const redisUrl =
-            this.configService.get('REDIS_URL') || 'redis://localhost:6379';
+            this.configService.get('REDIS_URL') || 'redis://redis:6379';
         this.redis = new Redis(redisUrl);
     }
 

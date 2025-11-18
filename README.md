@@ -5,92 +5,47 @@ Este documento descreve como iniciar o projeto backend com Docker.
 ## Pré-Requisitos
 
 Você deve ter instalado:
+
 - **Docker** e **Docker Compose** (versão 1.29+)
 - Um terminal/PowerShell aberto na pasta raiz do projeto
 
-## Passos para Iniciar
+## Passos para Iniciar a aplicação com Docker
 
-### 1. Clonar o Repositório (se necessário)
+1. Clone o repositório e entre na pasta:
 
-```bash
+```powershell
 git clone <repositorio-url>
 cd backend-marketplace-multi-ong
 ```
 
-### 2. Criar o Arquivo `.env`
+2. Crie os arquivos de ambiente a partir dos exemplos (não comite o `.env`):
 
-O projeto vem com um arquivo `.env.example` como referência. Você precisa criar o `.env`:
-
-**Opção A: Copiar manualmente**
-```bash
-cp .env.example .env
-```
-
-**Opção B: Usar PowerShell (Windows)**
 ```powershell
-Copy-Item .env.example .env
+Copy-Item backend\.env.example backend\.env
+Copy-Item frontend\.env.example frontend\.env
 ```
 
-**Opção C: O Docker cria automaticamente**
-Se você não criar, o Docker copiará `.env.example` para `.env` automaticamente na primeira execução.
+3. Suba os containers com build (este comando irá construir as imagens):
 
-**Conteúdo esperado do `.env`:**
-```
-DB_HOST=db
-DB_PORT=5432
-DB_USERNAME=marketplace_user
-DB_PASSWORD=secure_password
-DB_NAME=marketplace_db
-JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
-JWT_EXPIRES_IN=7d
-REDIS_HOST=redis
-REDIS_PORT=6379
-FRONTEND_URL=http://localhost:3001
-PORT=3000
-NODE_ENV=production ou development 
+```powershell
+docker-compose up --build
 ```
 
-### 3. Iniciar os Containers
+4. Verifique os logs (opcional):
 
-Execute o comando abaixo na pasta raiz do projeto:
-
-```bash
-docker-compose up -d
+```powershell
+docker-compose logs -f app frontend
 ```
 
-### 4. Aguardar a Inicialização
+5. Acessos padrão / sinais de sucesso:
 
-Os containers podem levar **30-60 segundos** para estar prontos na primeira execução. Use:
+- Backend: http://localhost:3000
+- Frontend: http://localhost:3001
 
-```bash
-docker-compose logs -f app
-```
+Procure nos logs mensagens de inicialização do NestJS e que o banco esteja pronto.
 
-**Sinais de sucesso:**
-```
-[OK] Database is ready!
-[OK] Running migrations...
-[OK] Starting application...
-[Nest] 40 - 11/14/2025, 3:20:43 PM LOG [NestApplication] Nest application successfully started
-```
+Observações importantes:
 
-## Como Funciona a Inicialização
-
-Quando você executa `docker-compose up -d`, a sequência é:
-
-1. PostgreSQL inicia - Cria banco marketplace_db automaticamente
-2. Redis inicia - Cache disponível
-3. NestJS inicia - Script entrypoint.sh executa:
-   - Aguarda PostgreSQL estar pronto
-   - Executa migracoes (npm run typeorm migration:run)
-   - Executa seed (npm run seed) - Popula o banco com dados iniciais (2 ONGs, usuarios e 5 produtos por ONG)
-   - Inicia servidor:
-     - Se NODE_ENV=production: npm run start:prod
-     - Se NODE_ENV=development: npm run start:dev (modo watch)
-
-Apos a primeira inicializacao, o banco estara populado com dados de teste:
-- Usuario admin@esperanca.org / Senha@123
-- Usuario admin@vida.org / Segura#456
-- Usuario admin@artesanato.org / Admin!789
-
----
+- Não coloque chaves secretas no frontend (`frontend/.env` deve conter apenas variáveis públicas prefixadas com `NEXT_PUBLIC_`).
+- Mantenha `backend/.env` e `frontend/.env` no `.gitignore` (já configurado).
+- Em ambientes de produção, injete segredos via CI/CD ou secrets manager em vez de arquivos `.env`.

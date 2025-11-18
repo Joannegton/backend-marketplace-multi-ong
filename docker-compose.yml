@@ -2,19 +2,16 @@ services:
   db:
     image: postgres:16-alpine
     container_name: marketplace-db
-    environment:
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+    env_file:
+      - ./backend/.env
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     networks:
       - marketplace-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -39,29 +36,37 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: marketplace-app
+    env_file:
+      - ./backend/.env
     environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      NODE_ENV: ${NODE_ENV:-development}
-      PORT: 3000
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3001}
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PORT=3000
     ports:
       - "3000:3000"
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
+    networks:
+      - marketplace-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: marketplace-frontend
+    environment:
+      - PORT=3000
+    ports:
+      - "3001:3000"
+    restart: unless-stopped
+    depends_on:
+      - app
     networks:
       - marketplace-network
 

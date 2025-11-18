@@ -11,26 +11,20 @@ RUN npm run build
 
 FROM node:20-alpine
 
+ENV NODE_ENV=production
+
 WORKDIR /app
 
-ENV NODE_ENV=development
-
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --omit=dev --silent
 
 COPY . .
 COPY --from=builder /app/dist ./dist
 
-RUN if [ ! -f .env ] && [ -f .env.example ]; then cp .env.example .env; fi
-
-# Instalar postgresql-client para pg_isready
-RUN apk add --no-cache postgresql-client
-
-# Copiar e dar permissão ao script de inicialização
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-RUN mkdir -p logs
+RUN chmod +x /entrypoint.sh \
+    && apk add --no-cache postgresql-client \
+    && mkdir -p logs
 
 EXPOSE 3000
 

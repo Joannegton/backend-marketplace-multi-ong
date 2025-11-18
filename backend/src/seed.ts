@@ -6,7 +6,7 @@ import * as bcrypt from 'bcrypt';
 async function seed() {
     const app = await NestFactory.createApplicationContext(AppModule);
     const dataSource = app.get(DataSource);
-
+    let exitCode = 0;
     try {
         console.log('---------Starting database seed...-----------');
 
@@ -101,9 +101,16 @@ async function seed() {
             '   ONG Artesanato Social: 33333333-3333-3333-3333-333333333333 (8 produtos: Artesanato, Alimentos, Vestuário, Outros)',
         );
     } catch (error) {
-        console.error('❌ Seed failed:', error);
+        console.error(' Seed failed:', error);
+        exitCode = 1;
     } finally {
-        await app.close();
+        try {
+            await app.close();
+        } catch (e) {
+            console.warn(' Error while closing app after seed:', e);
+        }
+        console.log('Seed finished, exiting process with code', exitCode);
+        process.exit(exitCode);
     }
 }
 
