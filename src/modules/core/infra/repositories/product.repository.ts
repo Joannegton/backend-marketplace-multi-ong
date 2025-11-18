@@ -21,19 +21,25 @@ export class ProductRepositoryImpl implements ProductRepository {
             return ProductMapper.toDomain(result);
         } catch (error) {
             throw new RepositoryException(
-                `Failed to create product: ${error.message ? error.message : "Unknown error"}`,
+                `Failed to create product: ${error.message ? error.message : 'Unknown error'}`,
             );
         }
     }
 
-    async saveWithQueryRunner(product: Product, queryRunner: QueryRunner): Promise<Product> {
+    async saveWithQueryRunner(
+        product: Product,
+        queryRunner: QueryRunner,
+    ): Promise<Product> {
         try {
             const entity = ProductMapper.toEntity(product);
-            const result = await queryRunner.manager.save(ProductEntity, entity);
+            const result = await queryRunner.manager.save(
+                ProductEntity,
+                entity,
+            );
             return ProductMapper.toDomain(result);
         } catch (error) {
             throw new RepositoryException(
-                `Failed to create product: ${error.message ? error.message : "Unknown error"}`,
+                `Failed to create product: ${error.message ? error.message : 'Unknown error'}`,
             );
         }
     }
@@ -52,7 +58,7 @@ export class ProductRepositoryImpl implements ProductRepository {
             return product;
         } catch (error) {
             throw new RepositoryException(
-                `Failed to find product by id: ${error.message ? error.message : "Unknown error"}`,
+                `Failed to find product by id: ${error.message ? error.message : 'Unknown error'}`,
             );
         }
     }
@@ -60,10 +66,16 @@ export class ProductRepositoryImpl implements ProductRepository {
     async findByIdAndOrganizationId(
         id: string,
         organizationId: string,
+        onlyActive: boolean = true,
     ): Promise<Product | null> {
         try {
+            const whereCondition: any = { id, organizationId };
+            if (onlyActive) {
+                whereCondition.isActive = true;
+            }
+
             const entity = await this.productRepository.findOne({
-                where: { id, organizationId, isActive: true },
+                where: whereCondition,
             });
             if (!entity) {
                 return null;
@@ -74,7 +86,7 @@ export class ProductRepositoryImpl implements ProductRepository {
             return product;
         } catch (error) {
             throw new RepositoryException(
-                `Failed to find product by id and organization: ${error.message ? error.message : "Unknown error"}`,
+                `Failed to find product by id and organization: ${error.message ? error.message : 'Unknown error'}`,
             );
         }
     }
@@ -96,7 +108,7 @@ export class ProductRepositoryImpl implements ProductRepository {
             return product;
         } catch (error) {
             throw new RepositoryException(
-                `Failed to find product by name and organization: ${error.message ? error.message : "Unknown error"}`,
+                `Failed to find product by name and organization: ${error.message ? error.message : 'Unknown error'}`,
             );
         }
     }
@@ -116,10 +128,10 @@ export class ProductRepositoryImpl implements ProductRepository {
                 return [];
             }
 
-            return entity.map(item => ProductMapper.toDomain(item));
+            return entity.map((item) => ProductMapper.toDomain(item));
         } catch (error) {
             throw new RepositoryException(
-                `Failed to find all products: ${error.message ? error.message : "Unknown error"}`,
+                `Failed to find all products: ${error.message ? error.message : 'Unknown error'}`,
             );
         }
     }
@@ -129,11 +141,16 @@ export class ProductRepositoryImpl implements ProductRepository {
         onlyActive: boolean = true,
     ): Promise<Product[]> {
         try {
-            const query = this.productRepository.createQueryBuilder('product')
-                .where('product.organizationId = :organizationId', { organizationId });
+            const query = this.productRepository
+                .createQueryBuilder('product')
+                .where('product.organizationId = :organizationId', {
+                    organizationId,
+                });
 
             if (onlyActive) {
-                query.andWhere('product.isActive = :isActive', { isActive: true });
+                query.andWhere('product.isActive = :isActive', {
+                    isActive: true,
+                });
             }
 
             query.orderBy('product.createdAt', 'DESC');
@@ -143,17 +160,25 @@ export class ProductRepositoryImpl implements ProductRepository {
                 return [];
             }
 
-            return entity.map(item => ProductMapper.toDomain(item));
+            return entity.map((item) => ProductMapper.toDomain(item));
         } catch (error) {
             throw new RepositoryException(
-                `Failed to find all products by organization: ${error.message ? error.message : "Unknown error"}`,
+                `Failed to find all products by organization: ${error.message ? error.message : 'Unknown error'}`,
             );
         }
     }
 
-    async findByIds(ids: string[], organizationId?: string): Promise<Product[]> {
+    async findByIds(
+        ids: string[],
+        organizationId?: string,
+    ): Promise<Product[]> {
         try {
-            const query = this.productRepository.createQueryBuilder('product')
+            if (ids.length === 0) {
+                return [];
+            }
+
+            const query = this.productRepository
+                .createQueryBuilder('product')
                 .where('product.id IN (:...ids)', { ids })
                 .andWhere('product.isActive = :isActive', { isActive: true });
 
@@ -168,16 +193,23 @@ export class ProductRepositoryImpl implements ProductRepository {
                 return [];
             }
 
-            return entity.map(item => ProductMapper.toDomain(item));
+            return entity.map((item) => ProductMapper.toDomain(item));
         } catch (error) {
             throw new RepositoryException(
-                `Failed to find products by ids: ${error.message ? error.message : "Unknown error"}`,
+                `Failed to find products by ids: ${error.message ? error.message : 'Unknown error'}`,
             );
         }
     }
 
-    async findByIdsWithLock(ids: string[], queryRunner: QueryRunner): Promise<Product[]> {
+    async findByIdsWithLock(
+        ids: string[],
+        queryRunner: QueryRunner,
+    ): Promise<Product[]> {
         try {
+            if (ids.length === 0) {
+                return [];
+            }
+
             const entities = await queryRunner.manager
                 .createQueryBuilder(ProductEntity, 'product')
                 .where('product.id IN (:...ids)', { ids })
@@ -189,17 +221,22 @@ export class ProductRepositoryImpl implements ProductRepository {
                 return [];
             }
 
-            const domains = entities.map(item => ProductMapper.toDomain(item));
+            const domains = entities.map((item) =>
+                ProductMapper.toDomain(item),
+            );
 
             return domains;
         } catch (error) {
             throw new RepositoryException(
-                `Failed to find products by ids with lock: ${error.message ? error.message : "Unknown error"}`,
+                `Failed to find products by ids with lock: ${error.message ? error.message : 'Unknown error'}`,
             );
         }
     }
 
-    async findByIdWithLock(id: string, queryRunner: QueryRunner): Promise<Product | null> {
+    async findByIdWithLock(
+        id: string,
+        queryRunner: QueryRunner,
+    ): Promise<Product | null> {
         try {
             const entity = await queryRunner.manager
                 .createQueryBuilder(ProductEntity, 'product')
@@ -215,7 +252,7 @@ export class ProductRepositoryImpl implements ProductRepository {
             return ProductMapper.toDomain(entity);
         } catch (error) {
             throw new RepositoryException(
-                `Failed to find product by id with lock: ${error.message ? error.message : "Unknown error"}`,
+                `Failed to find product by id with lock: ${error.message ? error.message : 'Unknown error'}`,
             );
         }
     }
@@ -235,8 +272,8 @@ export class ProductRepositoryImpl implements ProductRepository {
 
             const terms = query
                 .split(',')
-                .map(term => term.trim())
-                .filter(term => term.length > 0);
+                .map((term) => term.trim())
+                .filter((term) => term.length > 0);
 
             if (terms.length > 0) {
                 const orConditions = terms
@@ -255,18 +292,25 @@ export class ProductRepositoryImpl implements ProductRepository {
             }
 
             if (minPrice !== undefined) {
-                queryBuilder.andWhere('product.price >= :minPrice', { minPrice });
+                queryBuilder.andWhere('product.price >= :minPrice', {
+                    minPrice,
+                });
             }
 
             if (maxPrice !== undefined) {
-                queryBuilder.andWhere('product.price <= :maxPrice', { maxPrice });
+                queryBuilder.andWhere('product.price <= :maxPrice', {
+                    maxPrice,
+                });
             }
 
             if (category !== undefined && category.trim().length > 0) {
-                queryBuilder.andWhere('product.category ILIKE :category', { category: `%${category}%` });
+                queryBuilder.andWhere('product.category ILIKE :category', {
+                    category: `%${category}%`,
+                });
             }
 
-            queryBuilder.orderBy('product.createdAt', 'DESC')
+            queryBuilder
+                .orderBy('product.createdAt', 'DESC')
                 .skip(offset)
                 .take(limit);
 
@@ -276,23 +320,20 @@ export class ProductRepositoryImpl implements ProductRepository {
                 return [];
             }
 
-            return entities.map(item => ProductMapper.toDomain(item));
+            return entities.map((item) => ProductMapper.toDomain(item));
         } catch (error) {
             throw new RepositoryException(
-                `Failed to search products: ${error.message ? error.message : "Unknown error"}`,
+                `Failed to search products: ${error.message ? error.message : 'Unknown error'}`,
             );
         }
     }
 
-    async disable(id: string, organizationId: string): Promise<void> {
+    async delete(id: string, organizationId: string): Promise<void> {
         try {
-            await this.productRepository.update(
-                { id, organizationId },
-                { isActive: false },
-            );
+            await this.productRepository.delete({ id, organizationId });
         } catch (error) {
             throw new RepositoryException(
-                `Failed to deactivate product: ${error.message ? error.message : "Unknown error"}`,
+                `Failed to delete product: ${error.message ? error.message : 'Unknown error'}`,
             );
         }
     }

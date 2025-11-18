@@ -37,7 +37,10 @@ export class ShoppingCartCacheService implements ShoppingCartRepository {
         private readonly configService: ConfigService,
         @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     ) {
-        const cartTtlMinutes = this.configService.get<number>('CART_TTL_MINUTES', 20);
+        const cartTtlMinutes = this.configService.get<number>(
+            'CART_TTL_MINUTES',
+            20,
+        );
         this.cartTtlSeconds = cartTtlMinutes * 60;
     }
 
@@ -144,7 +147,10 @@ export class ShoppingCartCacheService implements ShoppingCartRepository {
         }
     }
 
-    async deleteWithQueryRunner(id: string, queryRunner: QueryRunner): Promise<void> {
+    async deleteWithQueryRunner(
+        id: string,
+        queryRunner: QueryRunner,
+    ): Promise<void> {
         try {
             const redis = this.cartsQueue.client;
             const cartKey = this.getCartKey(id);
@@ -279,6 +285,52 @@ export class ShoppingCartCacheService implements ShoppingCartRepository {
             return ShoppingCartMapper.toDomain(entity, products);
         } catch (error) {
             return null;
+        }
+    }
+
+    async saveWithQueryRunner(
+        cart: ShoppingCart,
+        queryRunner: QueryRunner,
+    ): Promise<ShoppingCart> {
+        try {
+            const entity = ShoppingCartMapper.toEntity(cart);
+            const savedEntity = await queryRunner.manager.save(
+                ShoppingCartEntity,
+                entity,
+            );
+
+            const productIds = cart.items.map((item) => item.productId);
+            const products = await this.productRepository.findByIds(productIds);
+
+            try {
+                const redis = this.cartsQueue.client;
+                const cartKey = this.getCartKey(cart.id);
+                await redis.setex(
+                    cartKey,
+                    this.cartTtlSeconds,
+                    JSON.stringify(this.toCacheFormat(cart)),
+                );
+            } catch (error_) {
+                this.logger.warn('Failed to update cart cache after DB save', {
+                    cartId: cart.id,
+                    error: error_.message,
+                    category: 'business',
+                });
+            }
+
+            return ShoppingCartMapper.toDomain(savedEntity, products);
+        } catch (error) {
+            this.logger.error(
+                'Failed to save shopping cart with query runner',
+                {
+                    cartId: cart.id,
+                    error: error.message,
+                    category: 'business',
+                },
+            );
+            throw new InvalidPropsException(
+                `Failed to save shopping cart: ${error.message}`,
+            );
         }
     }
 }

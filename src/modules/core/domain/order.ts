@@ -1,12 +1,16 @@
-import { InvalidPropsException } from "src/exceptions/invalidProps.exception";
-import { OrderItem, OrderItemDto } from "./order-item";
-import { Product } from "./product";
+import { InvalidPropsException } from 'src/exceptions/invalidProps.exception';
+import {
+    OrderItem,
+    OrderItemDto,
+    OrganizationOrderItemDto,
+} from './order-item';
+import { Product } from './product';
 
 export enum OrderStatus {
-  PENDING = 'pending',
-  PROCESSING = 'processing',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled',
+    PENDING = 'pending',
+    PROCESSING = 'processing',
+    COMPLETED = 'completed',
+    CANCELLED = 'cancelled',
 }
 
 export type Cliente = {
@@ -16,11 +20,12 @@ export type Cliente = {
     cep: string;
     address: string;
     number: string;
-}
+};
 
 type QuantityMap = Map<string, number>;
 
 type OrderProps = {
+    orderNumber: number;
     cliente?: Cliente;
     total: number;
     status: OrderStatus;
@@ -28,17 +33,18 @@ type OrderProps = {
     organizationIds: string[];
     createdAt: Date;
     updatedAt: Date;
-}
+};
 
 type CreateOrderProps = {
     orderItems: Product[];
     quantitiesMap: QuantityMap;
     cliente?: Cliente | null;
     isAlreadyReserved?: boolean;
-}
+};
 
 export type OrderDto = {
     id: string;
+    orderNumber: number;
     cliente?: Cliente;
     organizationIds: string[];
     total: number;
@@ -46,17 +52,18 @@ export type OrderDto = {
     items: OrderItemDto[];
     createdAt: Date;
     updatedAt: Date;
-}
+};
 
 export type OrganizationOrderDto = {
     id: string;
+    orderNumber: number;
     cliente?: Cliente;
     total: number;
-    items: OrderItemDto[];
+    items: OrganizationOrderItemDto[];
     status: OrderStatus;
     createdAt: Date;
     updatedAt: Date;
-}
+};
 
 export class Order {
     private readonly _id: string;
@@ -84,6 +91,7 @@ export class Order {
 
     static load(props: OrderProps, id: string): Order {
         const order = new Order(id);
+        order.setOrderNumber(props.orderNumber);
         if (props.cliente) {
             order.setCliente(props.cliente);
         }
@@ -102,7 +110,7 @@ export class Order {
         }
         for (const product of props.orderItems) {
             const requestedQuantity = props.quantitiesMap.get(product.id)!;
-            
+
             if (!props.isAlreadyReserved) {
                 product.reserveStock(requestedQuantity);
             }
@@ -120,8 +128,20 @@ export class Order {
     }
 
     recalculateOrderTotal() {
-        const total = this.props.items.reduce((sum, item) => sum + item.subtotal, 0);
+        const total = this.props.items.reduce(
+            (sum, item) => sum + item.subtotal,
+            0,
+        );
         this.setTotal(Number(total.toFixed(2)));
+    }
+
+    private setOrderNumber(orderNumber: number) {
+        if (orderNumber <= 0) {
+            throw new InvalidPropsException(
+                'Order number must be greater than 0',
+            );
+        }
+        this.props.orderNumber = orderNumber;
     }
 
     private setCliente(cliente: Cliente) {
@@ -142,9 +162,16 @@ export class Order {
         this.props.status = status;
     }
 
+    updateStatus(status: OrderStatus): void {
+        this.setStatus(status);
+        this.props.updatedAt = new Date();
+    }
+
     private setItems(items: OrderItem[]) {
         if (items.length === 0) {
-            throw new InvalidPropsException('Order must have at least one item');
+            throw new InvalidPropsException(
+                'Order must have at least one item',
+            );
         }
         this.props.items = items;
         this.refreshOrganizationIds();
@@ -161,13 +188,19 @@ export class Order {
     private setOrganizationIds(ids: string[]): void {
         const uniqueIds = Array.from(new Set(ids));
         if (uniqueIds.length === 0) {
-            throw new InvalidPropsException('Order must reference at least one organization');
+            throw new InvalidPropsException(
+                'Order must reference at least one organization',
+            );
         }
 
         const derived = this.extractOrganizationIdsFromItems();
-        const mismatch = uniqueIds.length !== derived.length || uniqueIds.some((id) => !derived.includes(id));
+        const mismatch =
+            uniqueIds.length !== derived.length ||
+            uniqueIds.some((id) => !derived.includes(id));
         if (mismatch) {
-            throw new InvalidPropsException('Organization IDs do not match order items');
+            throw new InvalidPropsException(
+                'Organization IDs do not match order items',
+            );
         }
 
         this.props.organizationIds = uniqueIds;
@@ -176,7 +209,9 @@ export class Order {
     private refreshOrganizationIds(): void {
         const ids = this.extractOrganizationIdsFromItems();
         if (ids.length === 0) {
-            throw new InvalidPropsException('Order must have at least one organization');
+            throw new InvalidPropsException(
+                'Order must have at least one organization',
+            );
         }
         this.props.organizationIds = ids;
     }
@@ -186,7 +221,9 @@ export class Order {
             return [];
         }
 
-        const ids = this.props.items.map((item) => item.organizationId).filter((id) => !!id && id.trim() !== '');
+        const ids = this.props.items
+            .map((item) => item.organizationId)
+            .filter((id) => !!id && id.trim() !== '');
         return Array.from(new Set(ids));
     }
 
@@ -194,10 +231,14 @@ export class Order {
         return this._id;
     }
 
+    get orderNumber(): number {
+        return this.props.orderNumber;
+    }
+
     get organizationIds(): string[] {
         return this.props.organizationIds;
     }
-    
+
     get cliente(): Cliente | undefined {
         return this.props.cliente;
     }
@@ -225,25 +266,29 @@ export class Order {
     toDto(): OrderDto {
         return {
             id: this._id,
+            orderNumber: this.props.orderNumber,
             cliente: this.props.cliente,
             organizationIds: this.props.organizationIds,
             total: this.props.total,
             status: this.props.status,
-            items: this.props.items.map(item => item.toDto()),
+            items: this.props.items.map((item) => item.toDto()),
             createdAt: this.props.createdAt,
             updatedAt: this.props.updatedAt,
         };
     }
 
     toOrganizationDto(organizationId: string): OrganizationOrderDto {
-        const orgItems = this.props.items.filter(item => item.organizationId === organizationId);
+        const orgItems = this.props.items.filter(
+            (item) => item.organizationId === organizationId,
+        );
         const orgTotal = orgItems.reduce((sum, item) => sum + item.subtotal, 0);
 
         return {
             id: this._id,
+            orderNumber: this.props.orderNumber,
             cliente: this.props.cliente,
             total: Number(orgTotal.toFixed(2)),
-            items: orgItems.map(item => item.toDto()),
+            items: orgItems.map((item) => item.toOrganizationItemDto()),
             status: this.props.status,
             createdAt: this.props.createdAt,
             updatedAt: this.props.updatedAt,

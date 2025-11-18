@@ -3,7 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryRunner, DataSource } from 'typeorm';
 import { ShoppingCart } from '../../domain/shopping-cart';
 import { ShoppingCartRepository } from '../../domain/repositories/shopping-cart.repository';
-import { ShoppingCartEntity } from '../entities/shopping-cart.entity';
+import {
+    ShoppingCartEntity,
+    ShoppingCartStatus,
+} from '../entities/shopping-cart.entity';
 import { ShoppingCartMapper } from '../mappers/shopping-cart.mapper';
 import { PRODUCT_REPOSITORY } from '../../core.tokens';
 import type { ProductRepository } from '../../domain/repositories/product.repository';
@@ -23,14 +26,33 @@ export class ShoppingCartRepositoryImpl implements ShoppingCartRepository {
         try {
             const entity = ShoppingCartMapper.toEntity(cart);
             const savedEntity = await this.repository.save(entity);
-            
+
             const productIds = cart.items.map((item) => item.productId);
             const products = await this.productRepository.findByIds(productIds);
-            
+
             return ShoppingCartMapper.toDomain(savedEntity, products);
         } catch (error) {
             throw new RepositoryException(
-                `Failed to save shopping cart: ${error.message ? error.message : "Unknown error"}`,
+                `Failed to save shopping cart: ${error.message ? error.message : 'Unknown error'}`,
+            );
+        }
+    }
+
+    async saveWithQueryRunner(
+        cart: ShoppingCart,
+        queryRunner: QueryRunner,
+    ): Promise<ShoppingCart> {
+        try {
+            const entity = ShoppingCartMapper.toEntity(cart);
+            const savedEntity = await queryRunner.manager.save(ShoppingCartEntity, entity);
+
+            const productIds = cart.items.map((item) => item.productId);
+            const products = await this.productRepository.findByIds(productIds);
+
+            return ShoppingCartMapper.toDomain(savedEntity, products);
+        } catch (error) {
+            throw new RepositoryException(
+                `Failed to save shopping cart with query runner: ${error.message ? error.message : 'Unknown error'}`,
             );
         }
     }
@@ -38,7 +60,7 @@ export class ShoppingCartRepositoryImpl implements ShoppingCartRepository {
     async findById(id: string): Promise<ShoppingCart | null> {
         try {
             const entity = await this.repository.findOne({
-                where: { id },
+                where: { id, status: ShoppingCartStatus.ACTIVE },
             });
 
             if (!entity) {
@@ -52,7 +74,7 @@ export class ShoppingCartRepositoryImpl implements ShoppingCartRepository {
             return cart;
         } catch (error) {
             throw new RepositoryException(
-                `Failed to find shopping cart by id: ${error.message ? error.message : "Unknown error"}`,
+                `Failed to find shopping cart by id: ${error.message ? error.message : 'Unknown error'}`,
             );
         }
     }
@@ -62,17 +84,20 @@ export class ShoppingCartRepositoryImpl implements ShoppingCartRepository {
             await this.repository.delete(id);
         } catch (error) {
             throw new RepositoryException(
-                `Failed to delete shopping cart: ${error.message ? error.message : "Unknown error"}`,
+                `Failed to delete shopping cart: ${error.message ? error.message : 'Unknown error'}`,
             );
         }
     }
 
-    async deleteWithQueryRunner(id: string, queryRunner: QueryRunner): Promise<void> {
+    async deleteWithQueryRunner(
+        id: string,
+        queryRunner: QueryRunner,
+    ): Promise<void> {
         try {
             await queryRunner.manager.delete(ShoppingCartEntity, id);
         } catch (error) {
             throw new RepositoryException(
-                `Failed to delete shopping cart: ${error.message ? error.message : "Unknown error"}`,
+                `Failed to delete shopping cart: ${error.message ? error.message : 'Unknown error'}`,
             );
         }
     }
@@ -99,7 +124,7 @@ export class ShoppingCartRepositoryImpl implements ShoppingCartRepository {
             await this.dataSource.manager.query(query, values);
         } catch (error) {
             throw new RepositoryException(
-                `Failed to persist shopping cart: ${error.message ? error.message : "Unknown error"}`,
+                `Failed to persist shopping cart: ${error.message ? error.message : 'Unknown error'}`,
             );
         }
     }

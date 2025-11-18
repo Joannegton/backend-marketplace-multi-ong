@@ -7,7 +7,7 @@ import { PRODUCT_REPOSITORY } from '../../core.tokens';
 import type { ProductRepository } from '../../domain/repositories/product.repository';
 import { ShoppingCartStatus } from '../../domain/shopping-cart';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan } from 'typeorm';
+import { Repository, LessThan, DataSource } from 'typeorm';
 import { ShoppingCartEntity } from '../entities/shopping-cart.entity';
 
 @Injectable()
@@ -19,15 +19,17 @@ export class ExpireShoppingCartsJob implements OnModuleInit {
         private readonly productRepository: ProductRepository,
         @Inject(WINSTON_MODULE_PROVIDER)
         private readonly logger: Logger,
-        private readonly configService: ConfigService,
-    ) {
-    }
+        private readonly dataSource: DataSource,
+    ) {}
 
     async onModuleInit() {
         // Executa o job imediatamente quando a aplicação inicia
-        this.logger.info('🚀 Application started - running initial shopping cart cleanup', {
-            category: 'business',
-        });
+        this.logger.info(
+            '🚀 Application started - running initial shopping cart cleanup',
+            {
+                category: 'business',
+            },
+        );
         await this.expireShoppingCarts();
     }
 
@@ -60,29 +62,51 @@ export class ExpireShoppingCartsJob implements OnModuleInit {
 
             for (const cartEntity of expiredCarts) {
                 try {
-                    const productIds = cartEntity.items.map(
-                        (item: any) => item.productId,
-                    );
-                    const products = await this.productRepository.findByIds(
-                        productIds,
-                    );
-
                     for (const item of cartEntity.items) {
-                        const product = products.find(
-                            (p) => p.id === item.productId,
-                        );
-                        if (product) {
-                            try {
-                                product.releaseReservation(item.quantity);
-                                await this.productRepository.save(product);
-                            } catch (releaseError) {
-                                this.logger.warn('Failed to release reservation for product', {
-                                    productId: product.id,
-                                    quantity: item.quantity,
-                                    error: releaseError.message,
-                                    category: 'business',
-                                });
+                        const productId = item.productId;
+                        const quantity = item.quantity;
+                        const queryRunner = this.dataSource.createQueryRunner();
+                        await queryRunner.connect();
+                        await queryRunner.startTransaction();
+                        try {
+                            const product =
+                                await this.productRepository.findByIdWithLock(
+                                    productId,
+                                    queryRunner,
+                                );
+                            if (product) {
+                                try {
+                                    product.releaseReservation(quantity);
+                                    await this.productRepository.saveWithQueryRunner(
+                                        product,
+                                        queryRunner,
+                                    );
+                                } catch (releaseError) {
+                                    this.logger.warn(
+                                        'Failed to release reservation for product',
+                                        {
+                                            productId: product.id,
+                                            quantity,
+                                            error: releaseError.message,
+                                            category: 'business',
+                                        },
+                                    );
+                                }
                             }
+
+                            await queryRunner.commitTransaction();
+                        } catch (err) {
+                            await queryRunner.rollbackTransaction();
+                            this.logger.error(
+                                'Failed to release reservation for product (transaction)',
+                                {
+                                    productId,
+                                    error: err.message,
+                                    category: 'business',
+                                },
+                            );
+                        } finally {
+                            await queryRunner.release();
                         }
                     }
 

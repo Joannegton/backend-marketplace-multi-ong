@@ -3,9 +3,10 @@ import { IsString, IsOptional, IsNumber, Min, Max } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class SearchProductsDto {
+    @IsOptional()
     @IsString()
     @Transform(({ value }) => value?.trim())
-    query: string;
+    query?: string;
 
     @IsOptional()
     @IsNumber()

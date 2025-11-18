@@ -3,16 +3,18 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 import { OpenAiService } from '../../../infra/services/openai.service';
 import type { ProductRepository } from '../../../domain/repositories/product.repository';
-import { Product } from '../../../domain/product';
+import { Product, ProductDto } from '../../../domain/product';
 import { SearchProductsDto } from '../../dtos/search-products.dto';
-import { PRODUCT_REPOSITORY, PRODUCT_CACHE_SERVICE } from '../../../core.tokens';
-import { InvalidPropsException } from 'src/exceptions/invalidProps.exception';
+import {
+    PRODUCT_REPOSITORY,
+    PRODUCT_CACHE_SERVICE,
+} from '../../../core.tokens';
 import { ProductCacheService } from '../../../infra/services/product-cache.service';
 
 export interface SearchResult {
     query: string;
     enhancedQuery: string;
-    results: Product[];
+    results: ProductDto[];
     pagination: {
         limit: number;
         offset: number;
@@ -35,15 +37,13 @@ export class SearchProductsUseCase {
 
     async execute(props: SearchProductsDto): Promise<SearchResult> {
         const startTime = Date.now();
-        if (!props.query || props.query.trim().length === 0) {
-            throw new InvalidPropsException('Query is required');
-        }
+        const hasQuery = props.query && props.query.trim().length > 0;
 
         const limit = props.limit || 10;
         const offset = props.offset || 0;
 
         const searchCacheKey = this.cacheService.generateSearchKey(
-            props.query,
+            props.query || '',
             props.minPrice,
             props.maxPrice,
             props.category,
@@ -55,15 +55,42 @@ export class SearchProductsUseCase {
         if (cachedResult) {
             this.logger.debug('Search cache hit', {
                 query: props.query,
+                hasQuery,
                 latency: `${Date.now() - startTime}ms`,
                 category: 'cache',
             });
             return cachedResult;
         }
 
+        if (hasQuery) {
+            return this.executeWithAI(
+                props,
+                limit,
+                offset,
+                startTime,
+                searchCacheKey,
+            );
+        } else {
+            return this.executeWithFilters(
+                props,
+                limit,
+                offset,
+                startTime,
+                searchCacheKey,
+            );
+        }
+    }
+
+    private async executeWithAI(
+        props: SearchProductsDto,
+        limit: number,
+        offset: number,
+        startTime: number,
+        searchCacheKey: string,
+    ): Promise<SearchResult> {
         try {
             const enhancedQuery = await this.openAiService.enhanceQuery(
-                props.query,
+                props.query!,
             );
 
             const latency = Date.now() - startTime;
@@ -82,12 +109,15 @@ export class SearchProductsUseCase {
                 props.category,
             );
 
-            const total = results.length > 0 ? results[0]['__total__'] || results.length : 0;
+            const total =
+                results.length > 0
+                    ? results[0]['__total__'] || results.length
+                    : 0;
 
             const searchResult: SearchResult = {
-                query: props.query,
+                query: props.query!,
                 enhancedQuery,
-                results,
+                results: results.map((product: Product) => product.toDto()),
                 pagination: {
                     limit,
                     offset,
@@ -96,7 +126,7 @@ export class SearchProductsUseCase {
                 },
             };
 
-            this.logger.info('Search completed successfully', {
+            this.logger.info('AI search completed successfully', {
                 query: props.query,
                 resultsCount: results.length,
                 totalLatency: `${Date.now() - startTime}ms`,
@@ -108,46 +138,67 @@ export class SearchProductsUseCase {
 
             return searchResult;
         } catch (error) {
-            this.logger.warn('Query enhancement failed, using fallback', {
+            this.logger.warn('AI enhancement failed, using fallback', {
                 query: props.query,
                 error: error.message,
                 latency: `${Date.now() - startTime}ms`,
             });
 
-            const results = await this.productRepository.search(
-                props.query,
-                props.minPrice,
-                props.maxPrice,
+            return this.executeWithFilters(
+                props,
                 limit,
                 offset,
-                props.category,
+                startTime,
+                searchCacheKey,
             );
-
-            const total = results.length > 0 ? results[0]['__total__'] || results.length : 0;
-
-            const searchResult: SearchResult = {
-                query: props.query,
-                enhancedQuery: props.query,
-                results,
-                pagination: {
-                    limit,
-                    offset,
-                    total,
-                    hasMore: offset + limit < total,
-                },
-            };
-
-            this.logger.info('Fallback search completed', {
-                query: props.query,
-                resultsCount: results.length,
-                totalLatency: `${Date.now() - startTime}ms`,
-                usedAI: false,
-                pagination: { limit, offset, total },
-            });
-
-            await this.cacheService.setSearch(searchCacheKey, searchResult);
-
-            return searchResult;
         }
+    }
+
+    private async executeWithFilters(
+        props: SearchProductsDto,
+        limit: number,
+        offset: number,
+        startTime: number,
+        searchCacheKey: string,
+    ): Promise<SearchResult> {
+        const results = await this.productRepository.search(
+            '',
+            props.minPrice,
+            props.maxPrice,
+            limit,
+            offset,
+            props.category,
+        );
+
+        const total =
+            results.length > 0 ? results[0]['__total__'] || results.length : 0;
+
+        const searchResult: SearchResult = {
+            query: props.query || '',
+            enhancedQuery: props.query || '',
+            results: results.map((product: Product) => product.toDto()),
+            pagination: {
+                limit,
+                offset,
+                total,
+                hasMore: offset + limit < total,
+            },
+        };
+
+        this.logger.info('Filter search completed successfully', {
+            filters: {
+                minPrice: props.minPrice,
+                maxPrice: props.maxPrice,
+                category: props.category,
+            },
+            resultsCount: results.length,
+            totalLatency: `${Date.now() - startTime}ms`,
+            usedAI: false,
+            pagination: { limit, offset, total },
+        });
+
+        await this.cacheService.setSearch(searchCacheKey, searchResult);
+
+        return searchResult;
     }
 }

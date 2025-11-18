@@ -1,12 +1,14 @@
-import { InvalidPropsException } from "src/exceptions/invalidProps.exception";
-import { OrderItem } from "./order-item";
-import { Product } from "./product";
-import { randomUUID } from 'crypto';
+import { InvalidPropsException } from 'src/exceptions/invalidProps.exception';
+import { InvalidStockException } from 'src/exceptions/invalid-stock.exception';
+import { ExpiredCartException } from 'src/exceptions/expired-cart.exception';
+import { OrderItem } from './order-item';
+import { Product } from './product';
+import { randomUUID } from 'node:crypto';
 
 export enum ShoppingCartStatus {
-  ACTIVE = 'active',
-  CONFIRMED = 'confirmed',
-  EXPIRED = 'expired',
+    ACTIVE = 'active',
+    CONFIRMED = 'confirmed',
+    EXPIRED = 'expired',
 }
 
 type ShoppingCartProps = {
@@ -15,7 +17,7 @@ type ShoppingCartProps = {
     expiresAt: Date;
     createdAt: Date;
     updatedAt: Date;
-}
+};
 
 export type ShoppingCartDto = {
     id: string;
@@ -31,7 +33,7 @@ export type ShoppingCartDto = {
     expiresAt: Date;
     createdAt: Date;
     updatedAt: Date;
-}
+};
 
 export class ShoppingCart {
     private readonly _id: string;
@@ -76,7 +78,7 @@ export class ShoppingCart {
         const newTotalQuantity = currentQuantity + quantity;
 
         if (!product.canReserveStock(newTotalQuantity)) {
-            throw new InvalidPropsException(
+            throw new InvalidStockException(
                 `Insufficient stock for product ${product.name}. Available: ${product.getAvailableStock()}`,
             );
         }
@@ -87,7 +89,7 @@ export class ShoppingCart {
             );
             if (existingItemIndex !== -1) {
                 const quantityIncrement = quantity;
-                
+
                 this.props.items[existingItemIndex] = OrderItem.create({
                     productId: product.id,
                     organizationId: product.organizationId,
@@ -117,6 +119,8 @@ export class ShoppingCart {
     }
 
     removeItem(productId: string): void {
+        this.validateCartActive();
+
         const itemIndex = this.props.items.findIndex(
             (item) => item.productId === productId,
         );
@@ -132,7 +136,58 @@ export class ShoppingCart {
         this.reservedProducts.delete(productId);
     }
 
+    updateItemQuantity(product: Product, newQuantity: number): void {
+        this.validateCartActive();
+        this.validateProductActive(product);
+
+        const itemIndex = this.props.items.findIndex(
+            (item) => item.productId === product.id,
+        );
+
+        if (itemIndex === -1) {
+            throw new InvalidPropsException(
+                `Product ${product.id} not found in cart`,
+            );
+        }
+
+        const currentQuantity = this.props.items[itemIndex].quantity;
+
+        if (newQuantity <= 0) {
+            throw new InvalidPropsException('Quantity must be greater than 0');
+        }
+
+        if (newQuantity === currentQuantity) {
+            return;
+        }
+
+        const quantityDifference = newQuantity - currentQuantity;
+
+        if (quantityDifference > 0) {
+            // aumentando quantidade - reservar a diferença
+            if (!product.canReserveStock(quantityDifference)) {
+                throw new InvalidStockException(
+                    `Insufficient stock for product ${product.name}. Available: ${product.getAvailableStock()}`,
+                );
+            }
+            product.reserveStock(quantityDifference);
+        } else {
+            // diminuindo quantidade - liberar a diferença
+            product.releaseReservation(Math.abs(quantityDifference));
+        }
+
+        this.props.items[itemIndex] = OrderItem.create({
+            productId: product.id,
+            organizationId: product.organizationId,
+            productName: product.name,
+            priceSnapshot: product.price,
+            quantity: newQuantity,
+        });
+
+        this.reservedProducts.set(product.id, newQuantity);
+    }
+
     clear(): void {
+        this.validateCartActive();
         for (const item of this.props.items) {
             item.product?.releaseReservation(item.quantity);
         }
@@ -141,9 +196,7 @@ export class ShoppingCart {
     }
 
     confirmCheckout(): void {
-        if (this.isExpired()) {
-            throw new InvalidPropsException('Shopping cart has expired');
-        }
+        this.validateCartActive();
         this.setStatus(ShoppingCartStatus.CONFIRMED);
     }
 
@@ -152,7 +205,10 @@ export class ShoppingCart {
     }
 
     calculateTotal(): number {
-        return this.props.items.reduce((total, item) => total + item.subtotal, 0);
+        return this.props.items.reduce(
+            (total, item) => total + item.subtotal,
+            0,
+        );
     }
 
     getOrganizationIds(): string[] {
@@ -168,7 +224,7 @@ export class ShoppingCart {
             throw new InvalidPropsException('Shopping cart is not active');
         }
         if (this.isExpired()) {
-            throw new InvalidPropsException('Shopping cart has expired');
+            throw new ExpiredCartException();
         }
     }
 
@@ -182,7 +238,6 @@ export class ShoppingCart {
         const item = this.props.items.find((i) => i.productId === productId);
         return item?.quantity || 0;
     }
-
 
     private setItems(items: OrderItem[]): void {
         this.props.items = items;

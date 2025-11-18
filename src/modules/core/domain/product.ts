@@ -1,4 +1,5 @@
 import { InvalidPropsException } from "src/exceptions/invalidProps.exception";
+import { InvalidStockException } from 'src/exceptions/invalid-stock.exception';
 
 export type ProductDto = {
     id: string;
@@ -117,7 +118,7 @@ export class Product {
             throw new InvalidPropsException('Quantity to decrease must be a positive integer');
         }
         if (this.props.stock < quantity) {
-            throw new InvalidPropsException('Insufficient stock available');
+            throw new InvalidStockException('Insufficient stock available');
         }
         this.props.stock -= quantity;
     }
@@ -149,7 +150,7 @@ export class Product {
 
     reserveStock(quantity: number): void {
         if (!this.canReserveStock(quantity)) {
-            throw new InvalidPropsException(
+            throw new InvalidStockException(
                 `Insufficient stock for product ${this.props.name}. Available: ${this.getAvailableStock()}, Requested: ${quantity}`,
             );
         }
@@ -157,23 +158,23 @@ export class Product {
     }
     releaseReservation(quantity: number): void {
         if (!Number.isInteger(quantity) || quantity <= 0) {
-            throw new InvalidPropsException('Quantity to release must be a positive integer');
+            throw new InvalidStockException('Quantity to release must be a positive integer');
         }
         if (this.props.reservedStock < quantity) {
-            throw new InvalidPropsException('Cannot release more stock than reserved');
+            throw new InvalidStockException('Cannot release more stock than reserved');
         }
         this.props.reservedStock -= quantity;
     }
 
     confirmReservedStock(quantity: number): void {
         if (!Number.isInteger(quantity) || quantity <= 0) {
-            throw new InvalidPropsException('Quantity to confirm must be a positive integer');
+            throw new InvalidStockException('Quantity to confirm must be a positive integer');
         }
         if (this.props.reservedStock < quantity) {
-            throw new InvalidPropsException('Cannot confirm more stock than reserved');
+            throw new InvalidStockException('Cannot confirm more stock than reserved');
         }
         if (this.props.stock < quantity) {
-            throw new InvalidPropsException('Insufficient stock to confirm');
+            throw new InvalidStockException('Insufficient stock to confirm');
         }
         this.props.stock -= quantity;
         this.props.reservedStock -= quantity;
@@ -181,6 +182,10 @@ export class Product {
 
     disable(): void {
         this.setIsActive(false);
+    }
+
+    toggleStatus(): void {
+        this.setIsActive(!this.props.isActive);
     }
 
     private setName(name: string) {

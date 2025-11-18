@@ -4,23 +4,29 @@ import {
     Get,
     Body,
     Param,
+    Query,
     HttpCode,
     HttpStatus,
 } from '@nestjs/common';
+import { CreateOrderUseCase } from '../application/usecases/order/create-order.usecase';
 import { GetOrderUseCase } from '../application/usecases/order/get-order.usecase';
+import { GetOrderByCpfUseCase } from '../application/usecases/order/get-order-by-cpf.usecase';
 import { GetOrganizationOrderUseCase } from '../application/usecases/order/get-organization-order.usecase';
 import { ListOrganizationOrdersUseCase } from '../application/usecases/order/list-organization-orders.usecase';
-import { CheckoutUseCase } from '../application/usecases/cart/checkout.usecase';
+import { CheckoutPaymentUseCase } from '../application/usecases/cart/checkout.usecase';
 import { Public } from 'src/common/decorators/public.decorator';
 import { OrganizationId } from 'src/common/decorators/organization-id.decorator';
 import { CartId } from 'src/common/decorators/cart-id.decorator';
-import { CheckoutDto } from '../application/dtos/checkout.dto';
+import { CreateOrderDto } from '../application/dtos/create-order.dto';
+import { CheckoutPaymentDto } from '../application/dtos/checkout-payment.dto';
 
 @Controller('orders')
 export class OrderController {
     constructor(
-        private readonly checkoutUseCase: CheckoutUseCase,
+        private readonly createOrderUseCase: CreateOrderUseCase,
+        private readonly checkoutPaymentUseCase: CheckoutPaymentUseCase,
         private readonly getOrderUseCase: GetOrderUseCase,
+        private readonly getOrderByCpfUseCase: GetOrderByCpfUseCase,
         private readonly getOrganizationOrderUseCase: GetOrganizationOrderUseCase,
         private readonly listOrganizationOrdersUseCase: ListOrganizationOrdersUseCase,
     ) {}
@@ -28,8 +34,18 @@ export class OrderController {
     @Post()
     @Public()
     @HttpCode(HttpStatus.CREATED)
-    async checkout(@CartId() cartId: string, @Body() dto: CheckoutDto) {
-        return await this.checkoutUseCase.execute(cartId, dto);
+    async createOrder(@CartId() cartId: string, @Body() dto: CreateOrderDto) {
+        return await this.createOrderUseCase.execute(cartId, dto);
+    }
+
+    @Post(':orderId/checkout')
+    @Public()
+    @HttpCode(HttpStatus.OK)
+    async checkoutPayment(
+        @Param('orderId') orderId: string,
+        @Body() dto: CheckoutPaymentDto,
+    ) {
+        return await this.checkoutPaymentUseCase.execute(orderId, dto);
     }
 
     @Get('organization')
@@ -44,7 +60,10 @@ export class OrderController {
         @Param('orderId') orderId: string,
         @OrganizationId() organizationId: string,
     ) {
-        return await this.getOrganizationOrderUseCase.execute(orderId, organizationId);
+        return await this.getOrganizationOrderUseCase.execute(
+            orderId,
+            organizationId,
+        );
     }
 
     @Get(':orderId')
@@ -52,7 +71,8 @@ export class OrderController {
     @Public()
     async getOrder(
         @Param('orderId') orderId: string,
+        @Query('cpf') cpf: string,
     ) {
-        return await this.getOrderUseCase.execute(orderId);
+        return await this.getOrderByCpfUseCase.execute(orderId, cpf);
     }
 }

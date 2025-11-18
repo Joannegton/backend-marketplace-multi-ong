@@ -1,5 +1,5 @@
-import { InvalidPropsException } from "src/exceptions/invalidProps.exception";
-import { Product } from "./product";
+import { InvalidPropsException } from 'src/exceptions/invalidProps.exception';
+import { Product } from './product';
 
 type OrderItemProps = {
     orderId: string;
@@ -10,7 +10,7 @@ type OrderItemProps = {
     priceSnapshot: number;
     quantity: number;
     subtotal: number;
-}
+};
 
 type CreateOrderItemProps = {
     productId: string;
@@ -18,17 +18,18 @@ type CreateOrderItemProps = {
     productName: string;
     priceSnapshot: number;
     quantity: number;
-}
+};
 
 export type OrderItemDto = {
-    orderId: string;
     productId: string;
     organizationId: string;
     productName: string;
     priceSnapshot: number;
     quantity: number;
     subtotal: number;
-}
+};
+
+export type OrganizationOrderItemDto = Omit<OrderItemDto, 'organizationId'>;
 
 export class OrderItem {
     private readonly _id: string;
@@ -64,7 +65,6 @@ export class OrderItem {
         return orderItem;
     }
 
-    
     private calculateSubtotal() {
         const subtotal = this.props.priceSnapshot * this.props.quantity;
         this.setSubtotal(subtotal);
@@ -97,21 +97,27 @@ export class OrderItem {
 
     private setPriceSnapshot(priceSnapshot: number) {
         if (priceSnapshot < 0) {
-            throw new InvalidPropsException('Price snapshot must be greater than or equal to 0');
+            throw new InvalidPropsException(
+                'Price snapshot must be greater than or equal to 0',
+            );
         }
         this.props.priceSnapshot = priceSnapshot;
     }
 
     private setQuantity(quantity: number) {
         if (!Number.isInteger(quantity) || quantity <= 0) {
-            throw new InvalidPropsException('Quantity must be a positive integer');
+            throw new InvalidPropsException(
+                'Quantity must be a positive integer',
+            );
         }
         this.props.quantity = quantity;
     }
 
     private setSubtotal(subtotal: number) {
         if (subtotal < 0) {
-            throw new InvalidPropsException('Subtotal must be greater than or equal to 0');
+            throw new InvalidPropsException(
+                'Subtotal must be greater than or equal to 0',
+            );
         }
         this.props.subtotal = subtotal;
     }
@@ -154,9 +160,18 @@ export class OrderItem {
 
     toDto(): OrderItemDto {
         return {
-            orderId: this.orderId,
             productId: this.productId,
             organizationId: this.organizationId,
+            productName: this.productName,
+            priceSnapshot: this.priceSnapshot,
+            quantity: this.quantity,
+            subtotal: this.subtotal,
+        };
+    }
+
+    toOrganizationItemDto(): OrganizationOrderItemDto {
+        return {
+            productId: this.productId,
             productName: this.productName,
             priceSnapshot: this.priceSnapshot,
             quantity: this.quantity,

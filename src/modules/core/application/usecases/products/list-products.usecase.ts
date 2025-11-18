@@ -1,7 +1,10 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { ProductDto } from '../../../domain/product';
 import { InvalidPropsException } from 'src/exceptions/invalidProps.exception';
-import { PRODUCT_REPOSITORY, PRODUCT_CACHE_SERVICE } from '../../../core.tokens';
+import {
+    PRODUCT_REPOSITORY,
+    PRODUCT_CACHE_SERVICE,
+} from '../../../core.tokens';
 import { ProductCacheService } from '../../../infra/services/product-cache.service';
 import type { ProductRepository } from 'src/modules/core/domain/repositories/product.repository';
 
@@ -18,8 +21,10 @@ export interface CatalogResult {
 @Injectable()
 export class ListProductsUseCase {
     constructor(
-        @Inject(PRODUCT_REPOSITORY) private readonly productRepository: ProductRepository,
-        @Inject(PRODUCT_CACHE_SERVICE) private readonly cacheService: ProductCacheService,
+        @Inject(PRODUCT_REPOSITORY)
+        private readonly productRepository: ProductRepository,
+        @Inject(PRODUCT_CACHE_SERVICE)
+        private readonly cacheService: ProductCacheService,
     ) {}
 
     async execute(organizationId: string): Promise<ProductDto[]> {
@@ -27,12 +32,16 @@ export class ListProductsUseCase {
             throw new InvalidPropsException('Organization ID is required');
         }
 
-        const cachedProducts = await this.cacheService.getOrgProducts(organizationId);
+        const cachedProducts =
+            await this.cacheService.getOrgProducts(organizationId);
         if (cachedProducts) {
             return cachedProducts;
         }
 
-        const products = await this.productRepository.findAllByOrganizationId(organizationId);
+        const products = await this.productRepository.findAllByOrganizationId(
+            organizationId,
+            false,
+        );
         const productsDto = products.map((product) => product.toDto());
 
         await this.cacheService.setOrgProducts(organizationId, products);
@@ -40,7 +49,10 @@ export class ListProductsUseCase {
         return productsDto;
     }
 
-    async executeCatalog(limit: number, offset: number): Promise<CatalogResult> {
+    async executeCatalog(
+        limit: number,
+        offset: number,
+    ): Promise<CatalogResult> {
         if (limit <= 0 || limit > 100) {
             limit = 10;
         }

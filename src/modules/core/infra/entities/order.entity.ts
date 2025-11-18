@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  Generated,
 } from 'typeorm';
 import { OrderItemEntity } from './order-item.entity';
 
@@ -28,6 +29,10 @@ export type ClienteType = {
 export class OrderEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ type: 'int', unique: true })
+  @Generated('increment')
+  orderNumber: number;
 
   @Column({ 
     type: 'json',
