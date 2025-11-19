@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Package, ShoppingBag, LogOut, X } from "lucide-react";
+import { Package, ShoppingBag, LogOut, X, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/atoms/logo";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,7 @@ interface AdminSidebarProps {
 }
 
 const menuItems = [
+  { icon: Home, label: "Dashboard", href: "/admin/dashboard" },
   { icon: Package, label: "Produtos", href: "/admin/products" },
   { icon: ShoppingBag, label: "Pedidos", href: "/admin/orders" },
 ];

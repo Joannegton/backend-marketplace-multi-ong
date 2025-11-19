@@ -1,131 +1,152 @@
-'use client';
+"use client";
 
+import { useEffect, useState } from "react";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
-import { Badge } from '@/components/atoms/badge';
-import { DashboardStats } from '@/components/organisms/dashboard-stats';
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/atoms/badge";
+import { DashboardStats } from "@/components/organisms/dashboard-stats";
+import { apiRequest } from "@/lib/api";
 
-const recentOrders = [
-    {
-        id: 'ORD-001',
-        customer: 'João Silva',
-        total: 159.9,
-        status: 'pending' as const,
-    },
-    {
-        id: 'ORD-002',
-        customer: 'Maria Santos',
-        total: 89.9,
-        status: 'paid' as const,
-    },
-    {
-        id: 'ORD-003',
-        customer: 'Pedro Costa',
-        total: 245,
-        status: 'paid' as const,
-    },
-    {
-        id: 'ORD-004',
-        customer: 'Ana Oliveira',
-        total: 125.5,
-        status: 'pending' as const,
-    },
-];
+type RecentOrder = {
+  id: string;
+  customer: string;
+  total: number;
+  status: string;
+};
 
-const lowStockProducts = [
-    { name: 'Chapéu de Palha', stock: 3 },
-    { name: 'Cesta de Artesanato', stock: 5 },
-    { name: 'Bolsa Ecológica', stock: 7 },
-];
+type LowStockProduct = {
+  name: string;
+  stock: number;
+};
 
 export default function AdminDashboardPage() {
-    return (
-        <div className="p-8 space-y-8">
-            <DashboardStats
-                stats={{
-                    totalProducts: 48,
-                    activeProducts: 42,
-                    newOrders: 12,
-                    lowStock: 3,
-                }}
-            />
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<{
+    totalProducts: number;
+    activeProducts: number;
+    newOrders: number;
+    lowStock: number;
+  } | null>(null);
+  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
+  const [lowStockProducts, setLowStockProducts] = useState<LowStockProduct[]>(
+    []
+  );
 
-            <div className="grid gap-6 md:grid-cols-2">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Pedidos Recentes</CardTitle>
-                        <CardDescription>
-                            Últimos pedidos recebidos
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {recentOrders.map((order) => (
-                                <div
-                                    key={order.id}
-                                    className="flex items-center justify-between py-2 border-b last:border-0"
-                                >
-                                    <div>
-                                        <p className="font-medium text-sm">
-                                            {order.id}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                            {order.customer}
-                                        </p>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="font-semibold text-sm">
-                                            R$ {order.total.toFixed(2)}
-                                        </span>
-                                        <Badge
-                                            variant={
-                                                order.status === 'paid'
-                                                    ? 'success'
-                                                    : 'warning'
-                                            }
-                                        >
-                                            {order.status === 'paid'
-                                                ? 'Pago'
-                                                : 'Pendente'}
-                                        </Badge>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await apiRequest.get("/auth/me");
+        if (res.status === 200 && mounted) {
+          const dashboard = (res.data as any).dashboard;
+          if (dashboard) {
+            setStats(dashboard.stats || null);
+            setRecentOrders(dashboard.recentOrders || []);
+            setLowStockProducts(dashboard.lowStockProducts || []);
+          }
+        }
+      } catch (err) {
+        // fail silently and keep mocked/fallback UI
+        // console.error('Failed to load dashboard', err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Estoque Baixo</CardTitle>
-                        <CardDescription>
-                            Produtos que precisam de reposição
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {lowStockProducts.map((product) => (
-                                <div
-                                    key={product.name}
-                                    className="flex items-center justify-between py-2 border-b last:border-0"
-                                >
-                                    <p className="text-sm font-medium">
-                                        {product.name}
-                                    </p>
-                                    <Badge variant="warning">
-                                        {product.stock} unidades
-                                    </Badge>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return (
+    <div className="p-8 space-y-8">
+      <DashboardStats stats={stats ?? undefined} />
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Pedidos Recentes</CardTitle>
+            <CardDescription>Últimos pedidos recebidos</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {loading ? (
+                <p>Carregando pedidos...</p>
+              ) : recentOrders.length ? (
+                recentOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="flex items-center justify-between py-2 border-b last:border-0"
+                  >
+                    <div>
+                      <p className="font-medium text-sm">{order.id}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {order.customer}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold text-sm">
+                        R$ {order.total.toFixed(2)}
+                      </span>
+                      <Badge
+                        variant={
+                          order.status === "completed" ||
+                          order.status === "paid"
+                            ? "success"
+                            : "warning"
+                        }
+                      >
+                        {order.status === "completed" || order.status === "paid"
+                          ? "Pago"
+                          : "Pendente"}
+                      </Badge>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Nenhum pedido recente
+                </p>
+              )}
             </div>
-        </div>
-    );
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Estoque Baixo</CardTitle>
+            <CardDescription>
+              Produtos que precisam de reposição
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {loading ? (
+                <p>Carregando produtos...</p>
+              ) : lowStockProducts.length ? (
+                lowStockProducts.map((product) => (
+                  <div
+                    key={product.name}
+                    className="flex items-center justify-between py-2 border-b last:border-0"
+                  >
+                    <p className="text-sm font-medium">{product.name}</p>
+                    <Badge variant="warning">{product.stock} unidades</Badge>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Sem produtos com estoque baixo
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 }
