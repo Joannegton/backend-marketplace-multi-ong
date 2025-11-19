@@ -13,12 +13,14 @@ import { useCreateOrder } from "@/hooks/order.hook";
 import Cookies from "js-cookie";
 import { toast } from "sonner";
 import type { CreateOrderDto } from "@/lib/types";
+import { useOrderStore } from "@/store/order.store";
 
 interface FormData extends CreateOrderDto {}
 
 export default function CustomerDataPage() {
   const router = useRouter();
   const { shoppingCart, clearShoppingCart } = useShoppingCartStore();
+
   const {
     data: products,
     isLoading: productsLoading,
@@ -28,6 +30,8 @@ export default function CustomerDataPage() {
   );
 
   const { mutate: createOrder, isPending: isCreatingOrder } = useCreateOrder();
+
+  const setOrder = useOrderStore((state) => state.setOrder);
 
   const { register, handleSubmit, setValue, watch, formState } =
     useForm<FormData>({
@@ -109,41 +113,22 @@ export default function CustomerDataPage() {
 
     createOrder(payload, {
       onSuccess: (order: any) => {
+        router.push(`/payment`);
         localStorage.setItem("orderCpf", payload.cpf);
-        router.push(
-          `/payment?orderId=${encodeURIComponent(order.id)}&cpf=${encodeURIComponent(
-            payload.cpf
-          )}`
-        );
+        setOrder(order);
         clearShoppingCart();
         Cookies.remove("cartId");
         localStorage.removeItem("shoppingCart");
       },
-      onError: (error: Error) => {
-        toast.error(error.message || "Erro ao criar pedido");
-      },
     });
   };
 
-  if (productsLoading) {
+  const isBusy = productsLoading || isCreatingOrder;
+
+  if (isBusy) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
-  if (isError || !products) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground mb-4 text-lg">
-            Erro ao carregar produtos
-          </p>
-          <Button size="lg" onClick={() => router.push("/")}>
-            Voltar para Home
-          </Button>
-        </div>
       </div>
     );
   }
@@ -163,12 +148,20 @@ export default function CustomerDataPage() {
     );
   }
 
-  const subtotal = shoppingCart.items.reduce(
-    (sum, item) => sum + item.priceSnapshot * item.quantity,
-    0
-  );
-  const shipping = subtotal > 0 ? 10 : 0;
-  const total = subtotal + shipping;
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4 text-lg">
+            Erro ao carregar produtos
+          </p>
+          <Button size="lg" onClick={() => router.push("/")}>
+            Voltar para Home
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -297,14 +290,6 @@ export default function CustomerDataPage() {
 
             <div className="flex gap-4">
               <Button
-                type="submit"
-                size="lg"
-                className="flex-1 h-12 text-base font-semibold"
-                disabled={isCreatingOrder}
-              >
-                {isCreatingOrder ? "Criando Pedido..." : "Ir para Pagamento"}
-              </Button>
-              <Button
                 type="button"
                 variant="outline"
                 size="lg"
@@ -314,62 +299,16 @@ export default function CustomerDataPage() {
               >
                 Voltar
               </Button>
+              <Button
+                type="submit"
+                size="lg"
+                className="flex-1 h-12 text-base font-semibold"
+                disabled={isCreatingOrder}
+              >
+                {isCreatingOrder ? "Criando Pedido..." : "Ir para Pagamento"}
+              </Button>
             </div>
           </form>
-
-          <div>
-            <Card className="sticky top-20 shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-xl">Resumo do Pedido</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {shoppingCart.items.map((item) => (
-                    <div
-                      key={item.productId}
-                      className="flex justify-between text-sm pb-2 border-b last:border-b-0"
-                    >
-                      <div className="flex-1">
-                        <p className="font-medium line-clamp-1">
-                          {item.productName}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Qtd: {item.quantity} × R${" "}
-                          {item.priceSnapshot.toFixed(2)}
-                        </p>
-                      </div>
-                      <p className="font-semibold text-right ml-2">
-                        R$ {(item.priceSnapshot * item.quantity).toFixed(2)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-3 pt-4 border-t">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Subtotal ({shoppingCart.items.length}{" "}
-                      {shoppingCart.items.length === 1 ? "item" : "itens"})
-                    </span>
-                    <span className="font-semibold">
-                      R$ {subtotal.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Frete</span>
-                    <span className="font-semibold">
-                      {shipping > 0 ? `R$ ${shipping.toFixed(2)}` : "Grátis"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between font-bold text-lg pt-4 border-t">
-                  <span>Total</span>
-                  <span className="text-primary">R$ {total.toFixed(2)}</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </main>
     </div>

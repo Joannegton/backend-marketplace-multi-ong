@@ -1,19 +1,26 @@
-export const dynamic = "force-dynamic";
+"use client";
 
 import Link from "next/link";
 import { CheckCircle, Package, Truck } from "lucide-react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useOrderStore } from "@/store/order.store";
+import { useRouter } from "next/navigation";
 
-export default function ConfirmationPage({
-  searchParams,
-}: {
-  searchParams: { orderId?: string | string[] };
-}) {
-  const rawOrder = searchParams?.orderId;
-  const orderId = Array.isArray(rawOrder)
-    ? rawOrder[0]
-    : (rawOrder ?? "#000000");
+export default function ConfirmationPage() {
+  const order = useOrderStore((state) => state.order);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!order) {
+      router.push("/");
+    }
+  }, [order, router]);
+
+  if (!order) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -39,7 +46,9 @@ export default function ConfirmationPage({
                   <p className="text-sm text-muted-foreground">
                     Número do Pedido
                   </p>
-                  <p className="text-2xl font-bold font-mono">{orderId}</p>
+                  <p className="text-2xl font-bold font-mono">
+                    {order.orderNumber}
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Data</p>
@@ -94,7 +103,6 @@ export default function ConfirmationPage({
                 </CardContent>
               </Card>
 
-              {/* Step 3 */}
               <Card>
                 <CardContent className="p-6 flex gap-4">
                   <div className="shrink-0">
@@ -113,7 +121,6 @@ export default function ConfirmationPage({
             </div>
           </div>
 
-          {/* Confirmation Message */}
           <Card className="bg-blue-50 border-blue-200">
             <CardContent className="p-6">
               <p className="text-sm text-blue-900">
@@ -123,16 +130,10 @@ export default function ConfirmationPage({
             </CardContent>
           </Card>
 
-          {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 pt-8">
             <Link href="/">
               <Button size="lg" className="flex-1">
                 Voltar para Home
-              </Button>
-            </Link>
-            <Link href="/account/orders">
-              <Button size="lg" variant="outline" className="flex-1">
-                Ver Meus Pedidos
               </Button>
             </Link>
           </div>
