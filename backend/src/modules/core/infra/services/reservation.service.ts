@@ -22,7 +22,10 @@ export class ReservationService {
         private readonly configService: ConfigService,
         @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     ) {
-        const cartTtlMinutes = this.configService.get<number>('CART_TTL_MINUTES', 20);
+        const cartTtlMinutes = this.configService.get<number>(
+            'CART_TTL_MINUTES',
+            20,
+        );
         this.cartTtlSeconds = cartTtlMinutes * 60;
     }
 
@@ -45,7 +48,11 @@ export class ReservationService {
 
             await redis
                 .pipeline()
-                .setex(reservationKey, this.cartTtlSeconds, JSON.stringify(reservation))
+                .setex(
+                    reservationKey,
+                    this.cartTtlSeconds,
+                    JSON.stringify(reservation),
+                )
                 .sadd(productReservedKey, cartId)
                 .expire(productReservedKey, this.cartTtlSeconds)
                 .exec();
@@ -63,7 +70,10 @@ export class ReservationService {
         }
     }
 
-    async getReservation(productId: string, cartId: string): Promise<Reservation | null> {
+    async getReservation(
+        productId: string,
+        cartId: string,
+    ): Promise<Reservation | null> {
         try {
             const redis = this.ordersQueue.client;
             const reservationKey = this.getReservationKey(productId, cartId);
@@ -122,12 +132,14 @@ export class ReservationService {
             const pipeline = redis.pipeline();
 
             for (const productId of productIds) {
-                const reservationKey = this.getReservationKey(productId, cartId);
-                const productReservedKey = this.getProductReservedKey(productId);
+                const reservationKey = this.getReservationKey(
+                    productId,
+                    cartId,
+                );
+                const productReservedKey =
+                    this.getProductReservedKey(productId);
 
-                pipeline
-                    .del(reservationKey)
-                    .srem(productReservedKey, cartId);
+                pipeline.del(reservationKey).srem(productReservedKey, cartId);
             }
 
             await pipeline.exec();

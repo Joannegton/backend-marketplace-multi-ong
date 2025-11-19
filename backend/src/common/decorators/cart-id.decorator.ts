@@ -11,7 +11,7 @@ export const CartId = createParamDecorator(
 
         if (!cartId) {
             throw new UnprocessableEntityException(
-                'CartId cookie not found. Please create a cart first.',
+                'CartId not found. Please create a cart first.',
             );
         }
 
