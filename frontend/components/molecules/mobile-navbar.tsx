@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 import { ShoppingCart, Search, Menu, X, Home, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/atoms/logo';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useShoppingCartStore } from '@/store/cart.store';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 
 interface MobileNavbarProps {
@@ -20,10 +21,18 @@ const menuItems = [
 
 export function MobileNavbar({ onSearch }: Readonly<MobileNavbarProps>) {
     const { shoppingCart } = useShoppingCartStore();
+    const router = useRouter();
+    const pathname = usePathname();
     const cartItemCount = shoppingCart?.items?.length ?? 0;
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+
+    useEffect(() => {
+        if (pathname !== '/search') {
+            setSearchQuery('');
+        }
+    }, [pathname]);
 
     const handleMenuClose = useCallback(() => setIsMenuOpen(false), []);
     const handleSearchClose = useCallback(() => {
@@ -35,10 +44,13 @@ export function MobileNavbar({ onSearch }: Readonly<MobileNavbarProps>) {
         (query: string) => {
             if (query.trim()) {
                 onSearch?.(query);
+                setTimeout(() => {
+                    router.push(`/search?query=${encodeURIComponent(query)}`);
+                }, 0);
                 handleSearchClose();
             }
         },
-        [onSearch, handleSearchClose]
+        [router, onSearch, handleSearchClose]
     );
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

@@ -13,9 +13,9 @@ async function seed() {
         await dataSource.query(`
       INSERT INTO organizations (id, name, description, "isActive", "createdAt", "updatedAt")
       VALUES 
-        ('11111111-1111-1111-1111-111111111111', 'ONG Esperança', 'Organização focada em educação e desenvolvimento social', true, NOW(), NOW()),
-        ('22222222-2222-2222-2222-222222222222', 'ONG Vida', 'Organização focada em saúde e bem-estar comunitário', true, NOW(), NOW()),
-        ('33333333-3333-3333-3333-333333333333', 'ONG Artesanato Social', 'Organização de promoção de artesanato e comércio justo', true, NOW(), NOW())
+        ('11111111-1111-1111-1111-111111111111', 'Instituto Educação para Todos', 'Instituto dedicado à educação de qualidade e desenvolvimento social', true, NOW(), NOW()),
+        ('22222222-2222-2222-2222-222222222222', 'Cooperativa Vida Saudável', 'Cooperativa de produtos orgânicos e bem-estar comunitário', true, NOW(), NOW()),
+        ('33333333-3333-3333-3333-333333333333', 'Associação Criativa Local', 'Associação que promove artesanato local e economia solidária', true, NOW(), NOW())
       ON CONFLICT (id) DO NOTHING;
     `);
         console.log('---------Organizations created------------');
@@ -28,9 +28,9 @@ async function seed() {
             `
       INSERT INTO users (id, email, password, name, "organizationId", "isActive", "createdAt", "updatedAt")
       VALUES 
-        ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'admin@esperanca.org', $1, 'Admin Esperança', '11111111-1111-1111-1111-111111111111', true, NOW(), NOW()),
-        ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'admin@vida.org', $2, 'Admin Vida', '22222222-2222-2222-2222-222222222222', true, NOW(), NOW()),
-        ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'admin@artesanato.org', $3, 'Admin Artesanato', '33333333-3333-3333-3333-333333333333', true, NOW(), NOW())
+        ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'admin@educacao.org', $1, 'Admin Instituto Educação', '11111111-1111-1111-1111-111111111111', true, NOW(), NOW()),
+        ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'admin@vida.org', $2, 'Admin Cooperativa Vida', '22222222-2222-2222-2222-222222222222', true, NOW(), NOW()),
+        ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'admin@criativa.org', $3, 'Admin Associação Criativa', '33333333-3333-3333-3333-333333333333', true, NOW(), NOW())
       ON CONFLICT (email) DO NOTHING;
     `,
             [password1, password2, password3],
@@ -40,59 +40,65 @@ async function seed() {
         await dataSource.query(`
       INSERT INTO products (id, "organizationId", name, description, price, weight, stock, category, "imageUrl", "isActive", "createdAt", "updatedAt")
       VALUES
-        (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'Livro de Matemática', 'Livro didático de matemática para ensino fundamental', 45.90, 0.5, 100, 'outros', 'https://example.com/math-book.jpg', true, NOW(), NOW()),
-        (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'Kit de Material Escolar', 'Kit completo com cadernos, lápis e canetas', 29.90, 1.2, 50, 'outros', 'https://example.com/school-kit.jpg', true, NOW(), NOW()),
-        (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'Mochila Escolar', 'Mochila resistente para estudantes', 79.90, 0.8, 30, 'vestuario', 'https://example.com/backpack.jpg', true, NOW(), NOW()),
-        (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'Estojo de Lápis', 'Estojo de madeira com 12 lápis de cor premium', 24.50, 0.3, 75, 'artesanato', 'https://example.com/pencil-case.jpg', true, NOW(), NOW()),
-        (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'Enciclopédia Infantil', 'Enciclopédia ilustrada com 3 volumes', 89.90, 2.5, 20, 'outros', 'https://example.com/encyclopedia.jpg', true, NOW(), NOW()),
-        (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'Caderno Artesanal', 'Caderno feito à mão com capa de tecido reciclado', 15.90, 0.4, 60, 'artesanato', 'https://example.com/notebook.jpg', true, NOW(), NOW()),
-        (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'Camiseta Educativa', 'Camiseta com mensagens motivacionais para estudantes', 35.00, 0.2, 40, 'vestuario', 'https://example.com/edu-shirt.jpg', true, NOW(), NOW())
+        (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'Curso Online de Programação', 'Curso completo de Python com certificado', 79.90, 0, 100, 'outros', 'https://raw.githubusercontent.com/Joannegton/backend-marketplace-multi-ong/7d541cf0a058af427840c88dc2c70e544ce1be64/frontend/public/placeholder.svg', true, NOW(), NOW()),
+        (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'Uniforme Escolar em Algodão', 'Uniforme escolar confortável para crianças', 45.90, 0.3, 80, 'vestuario', 'https://raw.githubusercontent.com/Joannegton/backend-marketplace-multi-ong/7d541cf0a058af427840c88dc2c70e544ce1be64/frontend/public/placeholder.svg', true, NOW(), NOW()),
+        (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'Kit Artesanato Educativo para Crianças', 'Kit com 50 peças para trabalhos manuais', 34.50, 1.2, 45, 'infantil', 'https://raw.githubusercontent.com/Joannegton/backend-marketplace-multi-ong/7d541cf0a058af427840c88dc2c70e544ce1be64/frontend/public/placeholder.svg', true, NOW(), NOW()),
+        (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'Pulseira de Contas Feita à Mão', 'Pulseira artesanal com contas de vidro reciclado', 18.90, 0.05, 120, 'artesanato', 'https://raw.githubusercontent.com/Joannegton/backend-marketplace-multi-ong/7d541cf0a058af427840c88dc2c70e544ce1be64/frontend/public/placeholder.svg', true, NOW(), NOW()),
+        (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'Tapete para Sala de Aula', 'Tapete antiderrapante para crianças', 89.90, 2.5, 30, 'casa', 'https://raw.githubusercontent.com/Joannegton/backend-marketplace-multi-ong/7d541cf0a058af427840c88dc2c70e544ce1be64/frontend/public/placeholder.svg', true, NOW(), NOW()),
+        (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'Gravata de Madeira Artesanal', 'Gravata eco-friendly confeccionada em madeira', 52.00, 0.1, 40, 'acessorios', 'https://raw.githubusercontent.com/Joannegton/backend-marketplace-multi-ong/7d541cf0a058af427840c88dc2c70e544ce1be64/frontend/public/placeholder.svg', true, NOW(), NOW()),
+        (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'Livro Infantil Ilustrado', 'Livro com histórias educativas para crianças', 29.90, 0.4, 60, 'infantil', 'https://raw.githubusercontent.com/Joannegton/backend-marketplace-multi-ong/7d541cf0a058af427840c88dc2c70e544ce1be64/frontend/public/placeholder.svg', true, NOW(), NOW())
       ON CONFLICT DO NOTHING;
     `);
         console.log(
-            '---------ONG Esperança products created (5 items)------------',
+            '---------Instituto Educação products created (7 items - todas as categorias)------------',
         );
 
         await dataSource.query(`
       INSERT INTO products (id, "organizationId", name, description, price, weight, stock, category, "imageUrl", "isActive", "createdAt", "updatedAt")
       VALUES
-        (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'Sabonete Artesanal', 'Sabonete natural feito com óleos essenciais', 12.50, 0.1, 200, 'artesanato', 'https://example.com/soap.jpg', true, NOW(), NOW()),
-        (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'Mel Orgânico', 'Mel puro extraído de colmeias locais', 25.00, 0.5, 80, 'outros', 'https://example.com/honey.jpg', true, NOW(), NOW()),
-        (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'Cesta de Frutas', 'Cesta com frutas frescas da estação', 35.90, 2.0, 25, 'outros', 'https://example.com/fruit-basket.jpg', true, NOW(), NOW()),
-        (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'Vela Aromática', 'Vela artesanal com aroma de lavanda', 18.90, 0.3, 60, 'artesanato', 'https://example.com/candle.jpg', true, NOW(), NOW()),
-        (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'Pão Caseiro', 'Pão integral assado diariamente', 8.50, 0.4, 150, 'outros', 'https://example.com/bread.jpg', true, NOW(), NOW()),
-        (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'Bolsa de Tecido', 'Bolsa feita de tecido reciclado', 42.00, 0.2, 35, 'vestuario', 'https://example.com/bag.jpg', true, NOW(), NOW()),
-        (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'Queijo Artesanal', 'Queijo maturado por 6 meses', 55.00, 0.8, 40, 'outros', 'https://example.com/cheese.jpg', true, NOW(), NOW()),
-        (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'Cachecol de Lã', 'Cachecol tricotado à mão com lã natural', 65.00, 0.3, 20, 'vestuario', 'https://example.com/scarf.jpg', true, NOW(), NOW())
+        (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'Mel Orgânico Puro', 'Mel puro extraído de colmeias locais sustentáveis', 35.00, 0.5, 90, 'outros', 'https://raw.githubusercontent.com/Joannegton/backend-marketplace-multi-ong/7d541cf0a058af427840c88dc2c70e544ce1be64/frontend/public/placeholder.svg', true, NOW(), NOW()),
+        (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'Camiseta Básica de Algodão', 'Camiseta 100% algodão orgânico em 8 cores', 42.50, 0.25, 100, 'vestuario', 'https://raw.githubusercontent.com/Joannegton/backend-marketplace-multi-ong/7d541cf0a058af427840c88dc2c70e544ce1be64/frontend/public/placeholder.svg', true, NOW(), NOW()),
+        (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'Vela Aromática Natural', 'Vela com essência de plantas locais', 22.90, 0.3, 75, 'artesanato', 'https://raw.githubusercontent.com/Joannegton/backend-marketplace-multi-ong/7d541cf0a058af427840c88dc2c70e544ce1be64/frontend/public/placeholder.svg', true, NOW(), NOW()),
+        (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'Almofada de Ervas para Relaxamento', 'Almofada com ervas aromáticas para terapia', 28.50, 0.4, 55, 'casa', 'https://raw.githubusercontent.com/Joannegton/backend-marketplace-multi-ong/7d541cf0a058af427840c88dc2c70e544ce1be64/frontend/public/placeholder.svg', true, NOW(), NOW()),
+        (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'Bolsa Eco Tote Bag', 'Bolsa de tecido reciclado e resistente', 38.90, 0.2, 65, 'acessorios', 'https://raw.githubusercontent.com/Joannegton/backend-marketplace-multi-ong/7d541cf0a058af427840c88dc2c70e544ce1be64/frontend/public/placeholder.svg', true, NOW(), NOW()),
+        (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'Kit Wellness para Crianças', 'Kit com chás naturais e mel para crianças', 32.00, 0.6, 50, 'infantil', 'https://raw.githubusercontent.com/Joannegton/backend-marketplace-multi-ong/7d541cf0a058af427840c88dc2c70e544ce1be64/frontend/public/placeholder.svg', true, NOW(), NOW()),
+        (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'Sabonete Natural com Glycerina', 'Sabonete artesanal feito com ingredientes naturais', 16.90, 0.1, 150, 'artesanato', 'https://raw.githubusercontent.com/Joannegton/backend-marketplace-multi-ong/7d541cf0a058af427840c88dc2c70e544ce1be64/frontend/public/placeholder.svg', true, NOW(), NOW())
       ON CONFLICT DO NOTHING;
     `);
-        console.log('---------ONG Vida products created (6 items)------------');
+        console.log(
+            '---------Cooperativa Vida products created (7 items - todas as categorias)------------',
+        );
 
         await dataSource.query(`
       INSERT INTO products (id, "organizationId", name, description, price, weight, stock, category, "imageUrl", "isActive", "createdAt", "updatedAt")
       VALUES 
-        (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', 'Bolsa de Tecido Artesanal', 'Bolsa feita à mão com tecido sustentável', 65.00, 0.6, 40, 'artesanato', 'https://example.com/bag.jpg', true, NOW(), NOW()),
-        (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', 'Camiseta de Algodão Orgânico', 'Camiseta 100% algodão orgânico em várias cores', 39.90, 0.25, 80, 'vestuario', 'https://example.com/tshirt.jpg', true, NOW(), NOW()),
-        (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', 'Pulseira de Miçangas', 'Pulseira artesanal com miçangas coloridas', 19.90, 0.05, 120, 'artesanato', 'https://example.com/bracelet.jpg', true, NOW(), NOW()),
-        (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', 'Lenço de Seda Estampado', 'Lenço de seda natural com estampa exclusiva', 52.00, 0.1, 45, 'vestuario', 'https://example.com/scarf.jpg', true, NOW(), NOW()),
-        (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', 'Jarra de Cerâmica Decorativa', 'Jarra feita em cerâmica com acabamento manual', 95.00, 1.2, 25, 'artesanato', 'https://example.com/pottery.jpg', true, NOW(), NOW()),
-        (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', 'Doce de Leite Artesanal', 'Doce de leite caseiro feito com leite fresco', 28.50, 0.4, 60, 'outros', 'https://example.com/dulce-de-leche.jpg', true, NOW(), NOW()),
-        (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', 'Kit de Costura Básico', 'Kit completo com agulhas, linhas e botões', 22.90, 0.3, 35, 'outros', 'https://example.com/sewing-kit.jpg', true, NOW(), NOW()),
-        (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', 'Caderno de Receitas', 'Caderno com receitas tradicionais da região', 16.50, 0.5, 70, 'outros', 'https://example.com/recipe-book.jpg', true, NOW(), NOW())
+        (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', 'Jarra de Cerâmica Artesanal', 'Jarra feita em cerâmica com acabamento manual', 95.00, 1.2, 25, 'artesanato', 'https://raw.githubusercontent.com/Joannegton/backend-marketplace-multi-ong/7d541cf0a058af427840c88dc2c70e544ce1be64/frontend/public/placeholder.svg', true, NOW(), NOW()),
+        (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', 'Blusa de Tricô Fina', 'Blusa tricotada à mão com linha de qualidade', 68.90, 0.3, 50, 'vestuario', 'https://raw.githubusercontent.com/Joannegton/backend-marketplace-multi-ong/7d541cf0a058af427840c88dc2c70e544ce1be64/frontend/public/placeholder.svg', true, NOW(), NOW()),
+        (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', 'Doce de Leite Premium', 'Doce de leite caseiro feito com leite fresco da região', 32.50, 0.4, 70, 'outros', 'https://raw.githubusercontent.com/Joannegton/backend-marketplace-multi-ong/7d541cf0a058af427840c88dc2c70e544ce1be64/frontend/public/placeholder.svg', true, NOW(), NOW()),
+        (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', 'Piscina Portátil para Crianças', 'Piscina infantil com cores vibrantes', 85.00, 2.5, 35, 'infantil', 'https://raw.githubusercontent.com/Joannegton/backend-marketplace-multi-ong/7d541cf0a058af427840c88dc2c70e544ce1be64/frontend/public/placeholder.svg', true, NOW(), NOW()),
+        (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', 'Cortina Estampada para Sala', 'Cortina em tecido sustentável com estampa exclusiva', 72.00, 1.5, 40, 'casa', 'https://raw.githubusercontent.com/Joannegton/backend-marketplace-multi-ong/7d541cf0a058af427840c88dc2c70e544ce1be64/frontend/public/placeholder.svg', true, NOW(), NOW()),
+        (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', 'Óculos de Sol Handmade', 'Óculos artesanais com armação de madeira', 55.90, 0.15, 45, 'acessorios', 'https://raw.githubusercontent.com/Joannegton/backend-marketplace-multi-ong/7d541cf0a058af427840c88dc2c70e544ce1be64/frontend/public/placeholder.svg', true, NOW(), NOW()),
+        (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', 'Kit de Pintura para Crianças', 'Kit completo com tintas e pincéis para pequenos artistas', 25.50, 0.8, 80, 'infantil', 'https://raw.githubusercontent.com/Joannegton/backend-marketplace-multi-ong/7d541cf0a058af427840c88dc2c70e544ce1be64/frontend/public/placeholder.svg', true, NOW(), NOW())
       ON CONFLICT DO NOTHING;
     `);
         console.log(
-            '---------ONG Artesanato Social products created (5 items)------------',
+            '---------Associação Criativa products created (7 items - todas as categorias)------------',
         );
 
         console.log('\nSeed completed successfully!');
         console.log('\nTest Credentials:');
-        console.log('   Email: admin@esperanca.org | Password: Senha@123');
+        console.log('   Email: admin@educacao.org | Password: Senha@123');
         console.log('   Email: admin@vida.org | Password: Segura#456');
-        console.log('   Email: admin@artesanato.org | Password: Admin!789');
+        console.log('   Email: admin@criativa.org | Password: Admin!789');
         console.log('\nOrganizations:');
         console.log(
-            '   ONG Esperança: 11111111-1111-1111-1111-111111111111 (7 produtos: Outros, Artesanato, Vestuário)',
+            '   Instituto Educação para Todos: 11111111-1111-1111-1111-111111111111 (7 produtos: todas as categorias)',
+        );
+        console.log(
+            '   Cooperativa Vida Saudável: 22222222-2222-2222-2222-222222222222 (7 produtos: todas as categorias)',
+        );
+        console.log(
+            '   Associação Criativa Local: 33333333-3333-3333-3333-333333333333 (7 produtos: todas as categorias)',
         );
     } catch (error) {
         console.error(' Seed failed:', error);

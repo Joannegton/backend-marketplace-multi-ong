@@ -1,12 +1,14 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 import { ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/atoms/logo';
 import { SearchInput } from '@/components/atoms/search-input';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useShoppingCartStore } from '@/store/cart.store';
+import { useCallback, useState, useEffect } from 'react';
 
 interface PublicNavbarProps {
     onSearch?: (query: string) => void;
@@ -14,7 +16,26 @@ interface PublicNavbarProps {
 
 export function PublicNavbar({ onSearch }: Readonly<PublicNavbarProps>) {
     const { shoppingCart } = useShoppingCartStore();
+    const router = useRouter();
+    const pathname = usePathname();
     const cartItemCount = shoppingCart?.items?.length ?? 0;
+    const [searchValue, setSearchValue] = useState('');
+
+    useEffect(() => {
+        if (pathname !== '/search') {
+            setSearchValue('');
+        }
+    }, [pathname]);
+
+    const handleSearch = useCallback((query: string) => {
+        if (query.trim()) {
+            setSearchValue(query);
+            onSearch?.(query);
+            setTimeout(() => {
+                router.push(`/search?query=${encodeURIComponent(query)}`);
+            }, 0);
+        }
+    }, [router, onSearch]);
 
     return (
         <header className="fixed top-0 left-0 right-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
@@ -23,7 +44,9 @@ export function PublicNavbar({ onSearch }: Readonly<PublicNavbarProps>) {
                 <div className="flex-1 max-w-xl">
                     <SearchInput
                         placeholder="Busque produtos ou digite algo como 'doces até 50 reais'..."
-                        onSearch={onSearch}
+                        externalValue={searchValue}
+                        onChange={setSearchValue}
+                        onSearch={handleSearch}
                     />
                 </div>
                 <nav className="flex items-center gap-2">
