@@ -6,12 +6,12 @@ import { FiltersSidebar } from "@/components/organisms/filters-sidebar";
 import { InfiniteScrollTrigger } from "@/components/atoms/infinite-scroll-trigger";
 import { useSearchProducts } from "@/hooks/products.hook";
 import { useSmartAddToCart } from "@/hooks/cart.hook";
-import { useCallback, useState, useRef, useEffect } from "react";
+import { useCallback, useState, useRef, useEffect, Suspense } from "react";
 import { SearchProductsParams } from "@/lib/types";
 import { useProductStore } from "@/store/products.store";
 import type { Product } from "@/lib/types";
 
-export default function SearchPage() {
+function SearchPageContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get("query") || "";
 
@@ -109,5 +109,13 @@ export default function SearchPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Carregando...</div>}>
+      <SearchPageContent />
+    </Suspense>
   );
 }
