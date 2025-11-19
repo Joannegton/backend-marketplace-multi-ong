@@ -26,7 +26,13 @@ import {
   useUpdateProduct,
   useGetOrganizationProduct,
 } from "@/hooks/products.hook";
-import { CreateProductData, UpdateProductData } from "@/lib/types";
+import {
+  CreateProductData,
+  PRODUCT_CATEGORIES,
+  UpdateProductData,
+  PRODUCT_CATEGORY_LABELS,
+  ProductCategory,
+} from "@/lib/types";
 
 interface ProductFormProps {
   productId?: string;
@@ -58,6 +64,8 @@ export function ProductForm({ productId }: Readonly<ProductFormProps>) {
   const { errors } = formState;
 
   const [weightDisplay, setWeightDisplay] = useState("");
+
+  const categories = [...PRODUCT_CATEGORIES];
 
   useEffect(() => {
     if (isEdit && product) {
@@ -172,10 +180,11 @@ export function ProductForm({ productId }: Readonly<ProductFormProps>) {
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="artesanato">Artesanato</SelectItem>
-                  <SelectItem value="alimentos">Alimentos</SelectItem>
-                  <SelectItem value="vestuario">Vestuário</SelectItem>
-                  <SelectItem value="outros">Outros</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {PRODUCT_CATEGORY_LABELS[cat]}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <input

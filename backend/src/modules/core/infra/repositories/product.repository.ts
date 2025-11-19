@@ -304,8 +304,8 @@ export class ProductRepositoryImpl implements ProductRepository {
             }
 
             if (category !== undefined && category.trim().length > 0) {
-                queryBuilder.andWhere('product.category ILIKE :category', {
-                    category: `%${category}%`,
+                queryBuilder.andWhere('product.category = :category', {
+                    category: category,
                 });
             }
 

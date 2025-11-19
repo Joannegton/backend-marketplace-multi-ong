@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useAppInitialization } from '@/hooks/app-initialization.hook';
+import { useAppInitialization } from "@/hooks/app-initialization.hook";
 
 export function AppInitializer() {
-    useAppInitialization();
-    return null;
+  useAppInitialization();
+  return null;
 }

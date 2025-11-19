@@ -3,8 +3,8 @@ import { MigrationInterface, QueryRunner, Table } from 'typeorm';
 export class CreateOrders1700000000003 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`
-      CREATE SEQUENCE order_number_seq START 1;
-    `);
+            CREATE SEQUENCE IF NOT EXISTS order_number_seq START 1;
+        `);
 
         await queryRunner.createTable(
             new Table({

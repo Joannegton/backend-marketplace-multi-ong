@@ -1,5 +1,15 @@
-import { InvalidPropsException } from "src/exceptions/invalidProps.exception";
+import { InvalidPropsException } from 'src/exceptions/invalidProps.exception';
 import { InvalidStockException } from 'src/exceptions/invalid-stock.exception';
+
+export const PRODUCT_CATEGORIES = [
+    'artesanato',
+    'vestuario',
+    'casa',
+    'acessorios',
+    'infantil',
+] as const;
+
+export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
 
 export type ProductDto = {
     id: string;
@@ -14,7 +24,7 @@ export type ProductDto = {
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
-}
+};
 
 type ProductProps = {
     name: string;
@@ -29,9 +39,12 @@ type ProductProps = {
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
-}
+};
 
-type CreateProductProps = Omit<ProductProps, 'isActive' | 'createdAt' | 'updatedAt' | 'reservedStock'>;
+type CreateProductProps = Omit<
+    ProductProps,
+    'isActive' | 'createdAt' | 'updatedAt' | 'reservedStock'
+>;
 
 type UpdateProductProps = {
     name?: string;
@@ -42,12 +55,12 @@ type UpdateProductProps = {
     imageUrl?: string;
     category?: string;
     organizationId: string;
-}
+};
 
 export class Product {
     private readonly _id: string;
     private readonly props: ProductProps;
-    
+
     constructor(id?: string) {
         if (id) {
             this._id = id;
@@ -92,11 +105,14 @@ export class Product {
             throw new InvalidPropsException('Product ID mismatch');
         }
         if (this.props.organizationId !== props.organizationId) {
-            throw new InvalidPropsException('Organization ID cannot be changed');
+            throw new InvalidPropsException(
+                'Organization ID cannot be changed',
+            );
         }
-        
+
         if (props.name !== undefined) this.setName(props.name);
-        if (props.description !== undefined) this.setDescription(props.description);
+        if (props.description !== undefined)
+            this.setDescription(props.description);
         if (props.price !== undefined) this.setPrice(props.price);
         if (props.weight !== undefined) this.setWeight(props.weight);
         if (props.stock !== undefined) this.setStock(props.stock);
@@ -105,17 +121,20 @@ export class Product {
         return;
     }
 
-    
     updateStock(quantity: number): void {
         if (!Number.isInteger(quantity) || quantity < 0) {
-            throw new InvalidPropsException('Stock quantity must be a positive integer');
+            throw new InvalidPropsException(
+                'Stock quantity must be a positive integer',
+            );
         }
         this.props.stock = quantity;
     }
 
     decreaseStock(quantity: number): void {
         if (!Number.isInteger(quantity) || quantity <= 0) {
-            throw new InvalidPropsException('Quantity to decrease must be a positive integer');
+            throw new InvalidPropsException(
+                'Quantity to decrease must be a positive integer',
+            );
         }
         if (this.props.stock < quantity) {
             throw new InvalidStockException('Insufficient stock available');
@@ -125,7 +144,9 @@ export class Product {
 
     increaseStock(quantity: number): void {
         if (!Number.isInteger(quantity) || quantity <= 0) {
-            throw new InvalidPropsException('Quantity to increase must be a positive integer');
+            throw new InvalidPropsException(
+                'Quantity to increase must be a positive integer',
+            );
         }
         this.props.stock += quantity;
     }
@@ -140,7 +161,9 @@ export class Product {
 
     canReserveStock(quantity: number): boolean {
         if (!Number.isInteger(quantity) || quantity <= 0) {
-            throw new InvalidPropsException('Quantity must be a positive integer');
+            throw new InvalidPropsException(
+                'Quantity must be a positive integer',
+            );
         }
         if (this.getAvailableStock() < quantity) {
             return false;
@@ -158,20 +181,28 @@ export class Product {
     }
     releaseReservation(quantity: number): void {
         if (!Number.isInteger(quantity) || quantity <= 0) {
-            throw new InvalidStockException('Quantity to release must be a positive integer');
+            throw new InvalidStockException(
+                'Quantity to release must be a positive integer',
+            );
         }
         if (this.props.reservedStock < quantity) {
-            throw new InvalidStockException('Cannot release more stock than reserved');
+            throw new InvalidStockException(
+                'Cannot release more stock than reserved',
+            );
         }
         this.props.reservedStock -= quantity;
     }
 
     confirmReservedStock(quantity: number): void {
         if (!Number.isInteger(quantity) || quantity <= 0) {
-            throw new InvalidStockException('Quantity to confirm must be a positive integer');
+            throw new InvalidStockException(
+                'Quantity to confirm must be a positive integer',
+            );
         }
         if (this.props.reservedStock < quantity) {
-            throw new InvalidStockException('Cannot confirm more stock than reserved');
+            throw new InvalidStockException(
+                'Cannot confirm more stock than reserved',
+            );
         }
         if (this.props.stock < quantity) {
             throw new InvalidStockException('Insufficient stock to confirm');
@@ -193,7 +224,9 @@ export class Product {
             throw new InvalidPropsException('Product name is required');
         }
         if (name.length > 255) {
-            throw new InvalidPropsException('Product name must not exceed 255 characters');
+            throw new InvalidPropsException(
+                'Product name must not exceed 255 characters',
+            );
         }
         this.props.name = name;
     }
@@ -210,7 +243,9 @@ export class Product {
             throw new InvalidPropsException('Price is required');
         }
         if (price < 0) {
-            throw new InvalidPropsException('Price must be greater than or equal to 0');
+            throw new InvalidPropsException(
+                'Price must be greater than or equal to 0',
+            );
         }
         this.props.price = price;
     }
@@ -220,7 +255,9 @@ export class Product {
             weight = 0;
         }
         if (weight < 0) {
-            throw new InvalidPropsException('Weight must be greater than or equal to 0');
+            throw new InvalidPropsException(
+                'Weight must be greater than or equal to 0',
+            );
         }
         this.props.weight = weight;
     }
@@ -240,14 +277,18 @@ export class Product {
             reservedStock = 0;
         }
         if (reservedStock < 0 || !Number.isInteger(reservedStock)) {
-            throw new InvalidPropsException('Reserved stock must be a positive integer');
+            throw new InvalidPropsException(
+                'Reserved stock must be a positive integer',
+            );
         }
         this.props.reservedStock = reservedStock;
     }
 
     private setImageUrl(imageUrl?: string) {
         if (imageUrl && imageUrl.length > 500) {
-            throw new InvalidPropsException('Image URL must not exceed 500 characters');
+            throw new InvalidPropsException(
+                'Image URL must not exceed 500 characters',
+            );
         }
         this.props.imageUrl = imageUrl;
     }
@@ -257,7 +298,9 @@ export class Product {
             throw new InvalidPropsException('Category is required');
         }
         if (category.length > 100) {
-            throw new InvalidPropsException('Category must not exceed 100 characters');
+            throw new InvalidPropsException(
+                'Category must not exceed 100 characters',
+            );
         }
         this.props.category = category;
     }

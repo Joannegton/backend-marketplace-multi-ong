@@ -1,5 +1,13 @@
-import { IsString, IsNumber, IsOptional, IsPositive, Min } from 'class-validator';
+import {
+    IsString,
+    IsNumber,
+    IsOptional,
+    IsPositive,
+    Min,
+    IsIn,
+} from 'class-validator';
 import { Type } from 'class-transformer';
+import { PRODUCT_CATEGORIES } from 'src/modules/core/domain/product';
 
 export class UpdateProductDto {
     @IsString()
@@ -34,5 +42,6 @@ export class UpdateProductDto {
 
     @IsString()
     @IsOptional()
+    @IsIn(PRODUCT_CATEGORIES)
     category?: string;
 }

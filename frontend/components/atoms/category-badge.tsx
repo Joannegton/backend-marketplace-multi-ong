@@ -1,21 +1,26 @@
-import { Badge } from './badge';
+import { Badge } from "./badge";
+import { PRODUCT_CATEGORY_LABELS, ProductCategory } from "@/lib/types";
 
 const categoryColors: Record<
-    string,
-    'default' | 'secondary' | 'success' | 'warning'
+  ProductCategory,
+  "default" | "secondary" | "success" | "warning"
 > = {
-    artesanato: 'default',
-    alimentos: 'success',
-    vestuario: 'warning',
-    outros: 'secondary',
+  artesanato: "default",
+  vestuario: "warning",
+  casa: "secondary",
+  acessorios: "success",
+  infantil: "secondary",
+  outros: "secondary",
 };
 
 interface CategoryBadgeProps {
-    category: string;
+  category: string;
 }
 
 export function CategoryBadge({ category }: Readonly<CategoryBadgeProps>) {
-    const variant = categoryColors[category.toLowerCase()] || 'secondary';
+  const key = (category || "").toLowerCase() as ProductCategory;
+  const variant = categoryColors[key] || "secondary";
+  const label = PRODUCT_CATEGORY_LABELS[key] ?? category;
 
-    return <Badge variant={variant}>{category}</Badge>;
+  return <Badge variant={variant}>{label}</Badge>;
 }
