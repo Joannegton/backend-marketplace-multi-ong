@@ -25,27 +25,21 @@ Copy-Item backend\.env.example backend\.env
 Copy-Item frontend\.env.example frontend\.env
 ```
 
-3. Suba os containers com build (este comando irá construir as imagens):
+3. Suba os containers com build (demora um pouco):
 
 ```powershell
 docker-compose up --build
 ```
 
-4. Verifique os logs (opcional):
-
-```powershell
-docker-compose logs -f app frontend
-```
-
-5. Acessos padrão / sinais de sucesso:
+4. Acessos padrão / sinais de sucesso:
 
 - Backend: http://localhost:3000
 - Frontend: http://localhost:3001
 
-Procure nos logs mensagens de inicialização do NestJS e que o banco esteja pronto.
+- **Credenciais de teste (seed):** o script de seed insere 3 usuários administrativos. Use essas contas para login/testes:
 
-Observações importantes:
+  - `admin@educacao.org` — senha: `Senha@123`
+  - `admin@vida.org` — senha: `Segura#456`
+  - `admin@criativa.org` — senha: `Admin!789`
 
-- Não coloque chaves secretas no frontend (`frontend/.env` deve conter apenas variáveis públicas prefixadas com `NEXT_PUBLIC_`).
-- Mantenha `backend/.env` e `frontend/.env` no `.gitignore` (já configurado).
-- Em ambientes de produção, injete segredos via CI/CD ou secrets manager em vez de arquivos `.env`.
+## Documentação

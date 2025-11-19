@@ -21,8 +21,20 @@ export class OpenAiService {
 
     async enhanceQuery(query: string): Promise<string> {
         try {
+            const timeoutMs = Number(
+                this.configService.get<number>('AI_TIMEOUT_MS', 5000),
+            );
+
             const timeoutPromise = new Promise<string>((_, reject) =>
-                setTimeout(() => reject(new Error('OpenAI API call timed out after 5s')), 5000)
+                setTimeout(
+                    () =>
+                        reject(
+                            new Error(
+                                `OpenAI API call timed out after ${timeoutMs}ms`,
+                            ),
+                        ),
+                    timeoutMs,
+                ),
             );
 
             const apiCallPromise = this.openaiClient.chat.completions.create({
@@ -42,18 +54,28 @@ export class OpenAiService {
                 temperature: 0,
             });
 
-            const response = await Promise.race([apiCallPromise, timeoutPromise]);
+            const response = await Promise.race([
+                apiCallPromise,
+                timeoutPromise,
+            ]);
 
             const enhancedQuery =
-                typeof response === 'string' ? response :
-                response.choices[0]?.message?.content?.trim() || query;
+                typeof response === 'string'
+                    ? response
+                    : response.choices[0]?.message?.content?.trim() || query;
 
             return enhancedQuery;
         } catch (error) {
             if (error?.message?.includes('timed out')) {
-                this.logger.error('GPT-4o-mini API call timed out (5s)', {
-                    query,
-                });
+                const timeoutMs = Number(
+                    this.configService.get<number>('AI_TIMEOUT_MS', 5000),
+                );
+                this.logger.error(
+                    `GPT-4o-mini API call timed out (${timeoutMs}ms)`,
+                    {
+                        query,
+                    },
+                );
             } else {
                 this.logger.error('GPT-4o-mini API call failed', {
                     query,
