@@ -1,21 +1,24 @@
-import { OrderItem } from "../../domain/order-item";
-import { OrderItemEntity as OrderItemEntity } from "../entities/order-item.entity";
+import { OrderItem } from '../../domain/order-item';
+import { OrderItemEntity as OrderItemEntity } from '../entities/order-item.entity';
 
 export class OrderItemMapper {
     static toDomain(entity: OrderItemEntity): OrderItem {
-        return OrderItem.load({
-            orderId: entity.orderId,
-            productId: entity.productId,
-            organizationId: entity.organizationId,
-            productName: entity.productName,
-            priceSnapshot: parseFloat(entity.priceSnapshot.toString()),
-            quantity: entity.quantity,
-            subtotal: parseFloat(entity.subtotal.toString()),
-        }, entity.id);
+        return OrderItem.load(
+            {
+                orderId: entity.orderId,
+                productId: entity.productId,
+                organizationId: entity.organizationId,
+                productName: entity.productName,
+                priceSnapshot: parseFloat(entity.priceSnapshot.toString()),
+                quantity: entity.quantity,
+                subtotal: parseFloat(entity.subtotal.toString()),
+            },
+            entity.id,
+        );
     }
 
     static toDomainList(entities: OrderItemEntity[]): OrderItem[] {
-        return entities.map(entity => this.toDomain(entity));
+        return entities.map((entity) => this.toDomain(entity));
     }
 
     static toEntity(domain: OrderItem): OrderItemEntity {
@@ -28,6 +31,10 @@ export class OrderItemMapper {
             quantity: domain.quantity,
             subtotal: domain.subtotal,
         });
+
+        if (domain.id) {
+            entity.id = domain.id;
+        }
 
         return entity;
     }

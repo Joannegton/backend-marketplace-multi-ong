@@ -12,6 +12,7 @@ import { ORDER_REPOSITORY } from 'src/modules/core/core.tokens';
 import type { OrderRepository } from 'src/modules/core/domain/repositories/order.repository';
 import { OrderDto, OrderStatus } from 'src/modules/core/domain/order';
 import { CheckoutPaymentDto } from '../../dtos/checkout-payment.dto';
+import { DataSource } from 'typeorm';
 
 /**
  * CheckoutPaymentUseCase
@@ -34,9 +35,14 @@ export class CheckoutPaymentUseCase {
         private readonly logger: Logger,
         @InjectQueue('orders')
         private readonly ordersQueue: Queue,
+        private readonly dataSource: DataSource,
     ) {}
 
     async execute(orderId: string, dto: CheckoutPaymentDto): Promise<OrderDto> {
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
         try {
             const order = await this.orderRepository.findById(orderId);
 
@@ -57,7 +63,12 @@ export class CheckoutPaymentUseCase {
             });
 
             order.updateStatus(OrderStatus.PROCESSING);
-            const updatedOrder = await this.orderRepository.save(order);
+            const updatedOrder = await this.orderRepository.saveWithQueryRunner(
+                order,
+                queryRunner,
+            );
+
+            await queryRunner.commitTransaction();
 
             await this.ordersQueue.add(
                 'process-payment',
@@ -82,11 +93,14 @@ export class CheckoutPaymentUseCase {
 
             return updatedOrder.toDto();
         } catch (error) {
+            await queryRunner.rollbackTransaction();
             this.logger.error('Failed to process payment checkout', {
                 error: error.message,
                 stack: error.stack,
             });
             throw error;
+        } finally {
+            await queryRunner.release();
         }
     }
 }

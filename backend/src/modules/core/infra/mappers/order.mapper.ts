@@ -1,5 +1,5 @@
 import { Order, OrderStatus } from '../../domain/order';
-import { OrderEntity } from "../entities/order.entity";
+import { OrderEntity } from '../entities/order.entity';
 import { OrderItemMapper } from './order-item.mapper';
 
 export class OrderMapper {
@@ -39,6 +39,13 @@ export class OrderMapper {
             total: domain.total,
             status: domain.status,
         });
+
+        if (domain.id) {
+            entity.id = domain.id;
+        }
+        if (domain.orderNumber) {
+            entity.orderNumber = domain.orderNumber;
+        }
 
         return entity;
     }

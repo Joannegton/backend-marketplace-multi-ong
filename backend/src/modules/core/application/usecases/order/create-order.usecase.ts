@@ -110,15 +110,40 @@ export class CreateOrderUseCase {
                     );
 
                 if (!isReserved) {
-                    this.logger.warn(
-                        'Cart item reservation expired - order creation rejected',
-                        {
-                            cartId,
-                            productId,
-                            quantity,
-                            reason: 'Reservation expired in Redis',
-                        },
-                    );
+                    try {
+                        const existingCartIds =
+                            await this.reservationService.getProductReservations(
+                                productId,
+                            );
+                        const currentReservation =
+                            await this.reservationService.getReservation(
+                                productId,
+                                cartId,
+                            );
+
+                        this.logger.warn(
+                            'Cart item reservation expired - order creation rejected',
+                            {
+                                cartId,
+                                productId,
+                                quantity,
+                                reason: 'Reservation expired in Redis',
+                                existingCartIds,
+                                currentReservation,
+                            },
+                        );
+                    } catch (dbgErr) {
+                        this.logger.warn(
+                            'Cart item reservation expired and debug fetch failed',
+                            {
+                                cartId,
+                                productId,
+                                quantity,
+                                reason: 'Reservation expired in Redis',
+                                debugError: dbgErr?.message ?? String(dbgErr),
+                            },
+                        );
+                    }
 
                     throw new BadRequestException(
                         `Reservation for product "${product.name}" has expired. Please add items to a new cart and try again.`,
