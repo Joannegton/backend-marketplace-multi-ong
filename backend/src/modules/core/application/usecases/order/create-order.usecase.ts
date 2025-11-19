@@ -150,7 +150,10 @@ export class CreateOrderUseCase {
                     );
                 }
 
-                if (!product.canReserveStock(quantity)) {
+                const canReserve = product.canReserveStock(quantity);
+                const alreadyReservedEnough = product.reservedStock >= quantity;
+
+                if (!canReserve && !alreadyReservedEnough) {
                     throw new InvalidPropsException(
                         `Product ${product.name} no longer has sufficient stock. Available: ${product.getAvailableStock()}, Requested: ${quantity}`,
                     );
