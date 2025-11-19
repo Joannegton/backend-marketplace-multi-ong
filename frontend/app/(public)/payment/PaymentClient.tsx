@@ -4,21 +4,41 @@ import { useRouter } from "next/navigation";
 import { CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useOrderByIdAndCpf, useCheckoutPayment } from "@/hooks/order.hook";
 import { toast } from "sonner";
 
-export default function PaymentClient({ orderId }: { orderId: string }) {
-  const router = useRouter();
-  const [cpf, setCpf] = useState<string>("");
+interface PaymentClientProps {
+  orderId: string;
+  cpf?: string;
+}
 
-  useEffect(() => {
-    const storedCpf =
-      (typeof globalThis !== "undefined" && (globalThis as any).localStorage
-        ? (globalThis as any).localStorage.getItem("orderCpf")
-        : "") || "";
-    setCpf(storedCpf);
-  }, []);
+export default function PaymentClient({
+  orderId,
+  cpf: cpfProp,
+}: Readonly<PaymentClientProps>) {
+  const router = useRouter();
+
+  const cpf = useMemo(() => {
+    if (cpfProp) {
+      try {
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem("orderCpf", cpfProp);
+        }
+      } catch {
+        // ignorar
+      }
+      return cpfProp;
+    }
+
+    if (typeof window !== "undefined") {
+      return window.localStorage.getItem("orderCpf") || "";
+    }
+
+    return "";
+  }, [cpfProp]);
+
+  const queryEnabled = Boolean(orderId && cpf);
 
   const {
     data: order,
@@ -68,15 +88,14 @@ export default function PaymentClient({ orderId }: { orderId: string }) {
     );
   };
 
-  if (isOrderLoading) {
+  if (!queryEnabled || isOrderLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
       </div>
     );
   }
-
-  if (isOrderError || !order) {
+  if (isOrderError) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -90,8 +109,7 @@ export default function PaymentClient({ orderId }: { orderId: string }) {
       </div>
     );
   }
-
-  if (!order.items || order.items.length === 0) {
+  if (!order?.items || order.items.length === 0) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">

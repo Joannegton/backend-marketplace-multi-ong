@@ -22,7 +22,7 @@ type ApiOptions = {
 };
 
 const handleCartError = () => {
-    Cookies.remove('cartid');
+    Cookies.remove('cartId');
 
     if (globalThis.window !== undefined) {
         globalThis.window.location.href = '/';

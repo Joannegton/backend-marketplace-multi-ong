@@ -59,7 +59,7 @@ export const useGetProductsIds = (productIds: string[]) => {
     return useQuery({
         queryKey: ['products', 'detail', productIds],
         queryFn: () => productsApi.getProductsIds(productIds),
-        enabled: !!productIds,
+        enabled: Array.isArray(productIds) && productIds.length > 0,
         staleTime: DEZ_MINUTOS,
         gcTime: VINTE_MINUTOS,
     });
