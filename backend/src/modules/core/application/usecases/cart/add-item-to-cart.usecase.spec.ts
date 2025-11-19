@@ -40,10 +40,13 @@ describe('AddItemToCartUseCase', () => {
     logger = { error: jest.fn(), info: jest.fn() };
     configService = { get: jest.fn().mockReturnValue(20) };
 
+    const ordersQueue: any = { add: jest.fn(), client: {} };
+
     usecase = new AddItemToCartUseCase(
       cartRepository,
       productRepository,
       reservationService,
+      ordersQueue,
       dataSource as any,
       logger as any,
       configService as any,

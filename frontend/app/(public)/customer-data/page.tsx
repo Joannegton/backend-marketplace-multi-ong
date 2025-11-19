@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { useShoppingCartStore } from "@/store/cart.store";
 import { useGetProductsIds } from "@/hooks/products.hook";
 import { useCreateOrder } from "@/hooks/order.hook";
@@ -29,20 +29,22 @@ export default function CustomerDataPage() {
 
   const { mutate: createOrder, isPending: isCreatingOrder } = useCreateOrder();
 
-  const [formData, setFormData] = useState<FormData>({
-    name: "",
-    cpf: "",
-    email: "",
-    cep: "",
-    address: "",
-    number: "",
-  });
+  const { register, handleSubmit, setValue, watch, formState } =
+    useForm<FormData>({
+      defaultValues: {
+        name: "",
+        cpf: "",
+        email: "",
+        cep: "",
+        address: "",
+        number: "",
+      },
+    });
+
+  const { errors } = formState;
 
   const handleInputChange = (field: keyof FormData, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setValue(field, value, { shouldValidate: true });
   };
 
   const formatCPF = (value: string) => {
@@ -61,43 +63,37 @@ export default function CustomerDataPage() {
     return cleaned.slice(0, 8);
   };
 
-  const validateForm = (): boolean => {
-    if (!formData.name.trim()) {
-      toast.error("Nome é obrigatório");
+  const validateForm = (data: FormData): boolean => {
+    if (
+      !data.name.trim() ||
+      data.name.trim().length < 2 ||
+      !/^[a-zA-ZÀ-ÿ\s]+$/.test(data.name)
+    ) {
+      toast.error("Nome inválido");
       return false;
     }
 
-    if (formData.name.trim().length < 2) {
-      toast.error("Nome deve ter pelo menos 2 caracteres");
-      return false;
-    }
-
-    if (!/^[a-zA-ZÀ-ÿ\s]+$/.test(formData.name)) {
-      toast.error("Nome deve conter apenas letras");
-      return false;
-    }
-
-    if (formData.cpf.length !== 11) {
+    if (data.cpf.length !== 11) {
       toast.error("CPF deve conter exatamente 11 dígitos");
       return false;
     }
 
-    if (!formData.email.includes("@")) {
+    if (!data.email.includes("@")) {
       toast.error("Email inválido");
       return false;
     }
 
-    if (formData.cep.length !== 8) {
+    if (data.cep.length !== 8) {
       toast.error("CEP deve conter exatamente 8 dígitos");
       return false;
     }
 
-    if (!formData.address.trim() || formData.address.trim().length < 5) {
+    if (!data.address.trim() || data.address.trim().length < 5) {
       toast.error("Endereço deve ter pelo menos 5 caracteres");
       return false;
     }
 
-    if (!formData.number.trim() || formData.number.trim().length > 10) {
+    if (!data.number.trim() || data.number.trim().length > 10) {
       toast.error("Número inválido");
       return false;
     }
@@ -105,17 +101,18 @@ export default function CustomerDataPage() {
     return true;
   };
 
-  const handleContinue = () => {
-    if (!validateForm()) {
+  const handleContinue = (data?: FormData) => {
+    const payload = data || watch();
+    if (!validateForm(payload)) {
       return;
     }
 
-    createOrder(formData, {
+    createOrder(payload, {
       onSuccess: (order: any) => {
-        localStorage.setItem("orderCpf", formData.cpf);
+        localStorage.setItem("orderCpf", payload.cpf);
         router.push(
           `/payment?orderId=${encodeURIComponent(order.id)}&cpf=${encodeURIComponent(
-            formData.cpf
+            payload.cpf
           )}`
         );
         clearShoppingCart();
@@ -192,10 +189,7 @@ export default function CustomerDataPage() {
 
         <div className="grid lg:grid-cols-3 gap-8">
           <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleContinue();
-            }}
+            onSubmit={handleSubmit(handleContinue)}
             className="lg:col-span-2 space-y-6"
           >
             <Card>
@@ -212,19 +206,19 @@ export default function CustomerDataPage() {
                     <Input
                       id="name"
                       type="text"
-                      value={formData.name}
-                      onChange={(e) =>
-                        handleInputChange("name", e.target.value)
-                      }
+                      {...register("name")}
                       placeholder="João Silva"
                     />
+                    {errors.name && (
+                      <p className="text-red-600 text-sm">Nome inválido</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="cpf">CPF *</Label>
                     <Input
                       id="cpf"
                       type="text"
-                      value={formData.cpf}
+                      value={watch("cpf")}
                       onChange={(e) =>
                         handleInputChange("cpf", formatCPF(e.target.value))
                       }
@@ -239,10 +233,12 @@ export default function CustomerDataPage() {
                   <Input
                     id="email"
                     type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    {...register("email")}
                     placeholder="joao@example.com"
                   />
+                  {errors.email && (
+                    <p className="text-red-600 text-sm">Email inválido</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -260,7 +256,7 @@ export default function CustomerDataPage() {
                   <Input
                     id="cep"
                     type="text"
-                    value={formData.cep}
+                    value={watch("cep")}
                     onChange={(e) =>
                       handleInputChange("cep", formatCEP(e.target.value))
                     }
@@ -275,25 +271,25 @@ export default function CustomerDataPage() {
                     <Input
                       id="address"
                       type="text"
-                      value={formData.address}
-                      onChange={(e) =>
-                        handleInputChange("address", e.target.value)
-                      }
+                      {...register("address")}
                       placeholder="Rua das Flores"
                     />
+                    {errors.address && (
+                      <p className="text-red-600 text-sm">Endereço inválido</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="number">Número *</Label>
                     <Input
                       id="number"
                       type="text"
-                      value={formData.number}
-                      onChange={(e) =>
-                        handleInputChange("number", e.target.value)
-                      }
+                      {...register("number")}
                       placeholder="123"
                       maxLength={10}
                     />
+                    {errors.number && (
+                      <p className="text-red-600 text-sm">Número inválido</p>
+                    )}
                   </div>
                 </div>
               </CardContent>

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 interface LogoProps {
-    href?: string;
+    href?: string | null;
     size?: 'sm' | 'md' | 'lg';
 }
 
@@ -11,11 +11,17 @@ export function Logo({ href = '/', size = 'md' }: Readonly<LogoProps>) {
         md: 'text-xl',
         lg: 'text-2xl',
     };
+    const className = `font-bold ${sizeClasses[size]} hover:opacity-80 transition-opacity`;
+    if (!href) {
+        return (
+            <span className={className}>
+                <span className="text-foreground">ONG</span>
+                <span className="text-accent">MARKKET</span>
+            </span>
+        );
+    }
     return (
-        <Link
-            href={href}
-            className={`font-bold ${sizeClasses[size]} hover:opacity-80 transition-opacity`}
-        >
+        <Link href={href} className={className}>
             <span className="text-foreground">ONG</span>
             <span className="text-accent">MARKKET</span>
         </Link>

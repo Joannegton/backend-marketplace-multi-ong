@@ -1,4 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bull';
+import type { Queue } from 'bull';
 import { DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -32,6 +34,7 @@ export class AddItemToCartUseCase {
         private readonly productRepository: ProductRepository,
         @Inject(RESERVATION_SERVICE)
         private readonly reservationService: ReservationService,
+        @InjectQueue('orders') private readonly ordersQueue: Queue,
         private readonly dataSource: DataSource,
         @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
         private readonly configService: ConfigService,
@@ -114,37 +117,88 @@ export class AddItemToCartUseCase {
                     productId: dto.productId,
                     cartId: savedCart.id,
                     error: redisError.message,
+                    stack: redisError.stack,
                     category: 'business',
                 });
 
-                const revertRunner = this.dataSource.createQueryRunner();
-                await revertRunner.connect();
-                await revertRunner.startTransaction();
-                try {
-                    const prod = await this.productRepository.findByIdWithLock(
-                        dto.productId,
-                        revertRunner,
-                    );
-                    if (prod) {
-                        prod.releaseReservation(totalItemQuantity);
-                        await this.productRepository.saveWithQueryRunner(
-                            prod,
+                const maxAttempts = 3;
+                let reverted = false;
+
+                for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                    const revertRunner = this.dataSource.createQueryRunner();
+                    await revertRunner.connect();
+                    await revertRunner.startTransaction();
+                    try {
+                        const prod = await this.productRepository.findByIdWithLock(
+                            dto.productId,
                             revertRunner,
                         );
+                        if (prod) {
+                            prod.releaseReservation(totalItemQuantity);
+                            await this.productRepository.saveWithQueryRunner(
+                                prod,
+                                revertRunner,
+                            );
+                        }
+                        await revertRunner.commitTransaction();
+                        reverted = true;
+                        break;
+                    } catch (compError) {
+                        await revertRunner.rollbackTransaction();
+                        this.logger.error(
+                            'Failed to revert reservedStock after Redis error (attempt)',
+                            {
+                                attempt,
+                                productId: dto.productId,
+                                error: compError.message,
+                                stack: compError.stack,
+                                category: 'business',
+                            },
+                        );
+                        if (attempt < maxAttempts) {
+                            // eslint-disable-next-line no-await-in-loop
+                            await new Promise((r) => setTimeout(r, 100 * attempt));
+                        }
+                    } finally {
+                        await revertRunner.release();
                     }
-                    await revertRunner.commitTransaction();
-                } catch (compError) {
-                    await revertRunner.rollbackTransaction();
-                    this.logger.error(
-                        'Failed to revert reservedStock after Redis error',
-                        {
+                }
+
+                if (!reverted) {
+                    this.logger.error('Reversion of reservedStock failed after retries', {
+                        productId: dto.productId,
+                        cartId: savedCart.id,
+                        totalItemQuantity,
+                        category: 'business',
+                    });
+                    try {
+                        await this.ordersQueue.add(
+                            'reconcile-inventory',
+                            {
+                                productId: dto.productId,
+                                cartId: savedCart.id,
+                                quantity: totalItemQuantity,
+                                reason: 'reserve_failed_revert',
+                            },
+                            {
+                                attempts: 5,
+                                backoff: { type: 'exponential', delay: 1000 },
+                                removeOnComplete: true,
+                            },
+                        );
+                        this.logger.info('Enqueued inventory reconciliation job', {
                             productId: dto.productId,
-                            error: compError.message,
-                            category: 'business',
-                        },
-                    );
-                } finally {
-                    await revertRunner.release();
+                            cartId: savedCart.id,
+                            quantity: totalItemQuantity,
+                        });
+                    } catch (enqueueErr) {
+                        this.logger.error('Failed to enqueue reconciliation job', {
+                            productId: dto.productId,
+                            cartId: savedCart.id,
+                            error: enqueueErr?.message,
+                            stack: enqueueErr?.stack,
+                        });
+                    }
                 }
 
                 throw new Error(

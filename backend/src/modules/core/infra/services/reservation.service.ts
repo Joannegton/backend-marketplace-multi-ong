@@ -62,6 +62,7 @@ export class ReservationService {
                 cartId,
                 quantity,
                 error: error.message,
+                stack: error.stack,
                 category: 'business',
             });
             throw new InvalidPropsException(
@@ -85,6 +86,13 @@ export class ReservationService {
 
             return JSON.parse(data) as Reservation;
         } catch (error) {
+            this.logger.error('Failed to get reservation from Redis', {
+                productId,
+                cartId,
+                error: error.message,
+                stack: error.stack,
+                category: 'business',
+            });
             throw new InvalidPropsException(
                 `Failed to get reservation from Redis: ${error.message}`,
             );
@@ -103,6 +111,13 @@ export class ReservationService {
                 .srem(productReservedKey, cartId)
                 .exec();
         } catch (error) {
+            this.logger.error('Failed to release reservation from Redis', {
+                productId,
+                cartId,
+                error: error.message,
+                stack: error.stack,
+                category: 'business',
+            });
             throw new InvalidPropsException(
                 `Failed to release reservation from Redis: ${error.message}`,
             );
@@ -117,6 +132,12 @@ export class ReservationService {
 
             return cartIds || [];
         } catch (error) {
+            this.logger.error('Failed to get product reservations from Redis', {
+                productId,
+                error: error.message,
+                stack: error.stack,
+                category: 'business',
+            });
             throw new InvalidPropsException(
                 `Failed to get product reservations from Redis: ${error.message}`,
             );
@@ -144,6 +165,12 @@ export class ReservationService {
 
             await pipeline.exec();
         } catch (error) {
+            this.logger.error('Failed to clear cart reservations from Redis', {
+                cartId,
+                error: error.message,
+                stack: error.stack,
+                category: 'business',
+            });
             throw new InvalidPropsException(
                 `Failed to clear cart reservations from Redis: ${error.message}`,
             );

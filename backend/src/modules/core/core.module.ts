@@ -46,6 +46,7 @@ import {
 import { ProductController } from './controllers/product.controller';
 import { OrdersProcessor } from './infra/services/processors/order-processor.service';
 import { ShoppingCartProcessor } from './infra/services/processors/shopping-cart-processor.service';
+import { InventoryReconciliationProcessor } from './infra/services/processors/inventory-reconciliation.processor';
 import { ReservationService } from './infra/services/reservation.service';
 import { ShoppingCartCacheService } from './infra/services/shopping-cart-cache.service';
 import { ProductCacheService } from './infra/services/product-cache.service';
@@ -123,6 +124,7 @@ import { OrderController } from './controllers/order.controller';
         RemoveCartItemUseCase,
         OpenAiService,
         OrdersProcessor,
+        InventoryReconciliationProcessor,
         ShoppingCartProcessor,
         ExpireShoppingCartsJob,
     ],

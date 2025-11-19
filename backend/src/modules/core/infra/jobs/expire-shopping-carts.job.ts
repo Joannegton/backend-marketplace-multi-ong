@@ -2,9 +2,9 @@ import { Injectable, Inject, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import type { Logger } from 'winston';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { ConfigService } from '@nestjs/config';
-import { PRODUCT_REPOSITORY } from '../../core.tokens';
+import { PRODUCT_REPOSITORY, RESERVATION_SERVICE } from '../../core.tokens';
 import type { ProductRepository } from '../../domain/repositories/product.repository';
+import type { ReservationService } from '../services/reservation.service';
 import { ShoppingCartStatus } from '../../domain/shopping-cart';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, DataSource } from 'typeorm';
@@ -20,12 +20,14 @@ export class ExpireShoppingCartsJob implements OnModuleInit {
         @Inject(WINSTON_MODULE_PROVIDER)
         private readonly logger: Logger,
         private readonly dataSource: DataSource,
+        @Inject(RESERVATION_SERVICE)
+        private readonly reservationService: ReservationService,
     ) {}
 
     async onModuleInit() {
         // Executa o job imediatamente quando a aplicação inicia
         this.logger.info(
-            '🚀 Application started - running initial shopping cart cleanup',
+            '------ Application started - running initial shopping cart cleanup',
             {
                 category: 'business',
             },
@@ -112,6 +114,27 @@ export class ExpireShoppingCartsJob implements OnModuleInit {
 
                     cartEntity.status = ShoppingCartStatus.EXPIRED;
                     await this.cartRepository.save(cartEntity);
+
+                    // limpa o redis
+                    try {
+                        const productIds = cartEntity.items.map(
+                            (i: any) => i.productId,
+                        );
+                        await this.reservationService.clearCartReservations(
+                            cartEntity.id,
+                            productIds,
+                        );
+                    } catch (clearErr) {
+                        this.logger.error(
+                            'Failed to clear reservations in Redis for expired cart',
+                            {
+                                cartId: cartEntity.id,
+                                error: clearErr.message,
+                                stack: clearErr.stack,
+                                category: 'business',
+                            },
+                        );
+                    }
 
                     clearedCount++;
 
