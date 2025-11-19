@@ -1,6 +1,7 @@
 {
   "name": "front-marketplace-multi-ong",
   "version": "0.1.0",
+  "description": "Front-end Next.js application for ONGMarket",
   "private": true,
   "scripts": {
     "dev": "next dev",

@@ -13,6 +13,11 @@ const inter = Inter({
 export const metadata: Metadata = {
     title: 'ONGMarket - Marketplace de Produtos de ONGs',
     description: 'Conectando clientes com produtos de ONGs parceiras',
+    icons: {
+        icon: '/favicon.svg',
+        shortcut: '/favicon.svg',
+        apple: '/favicon.svg',
+    },
 };
 
 export default function RootLayout({
