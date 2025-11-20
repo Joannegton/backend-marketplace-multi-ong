@@ -17,14 +17,12 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev --silent
 
-COPY . .
 COPY --from=builder /app/dist ./dist
+COPY . .
 
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh \
-    && apk add --no-cache postgresql-client \
-    && mkdir -p logs
+RUN apk add --no-cache postgresql-client \
+    && mkdir -p logs 
 
 EXPOSE 3000
 
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/bin/sh", "-c", "npm run migration:run && node dist/src/seed.js && npm run start:prod"]

@@ -2,7 +2,7 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --silent
+RUN npm ci --silent
 
 FROM node:20-alpine AS build
 WORKDIR /app
@@ -20,8 +20,5 @@ COPY --from=build /app/.next ./.next
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./package.json
 
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
 EXPOSE 3000
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["npm", "start"]
